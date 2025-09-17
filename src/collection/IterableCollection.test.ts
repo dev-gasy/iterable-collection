@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { IterableCollection } from "./IterableCollection";
-import { type BusinessEntity } from "./types";
-import { Entity } from "./Entity";
+import { IterableCollection } from "./IterableCollection.ts";
+import { type BusinessEntity } from "./types.ts";
+import { Entity } from "./Entity.ts";
 
 interface TestData extends BusinessEntity {
   name: string;

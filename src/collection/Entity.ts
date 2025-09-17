@@ -1,4 +1,4 @@
-import type { BusinessEntity } from "./types";
+import type { BusinessEntity } from "./types.ts";
 
 export class Entity<
   TData extends BusinessEntity,

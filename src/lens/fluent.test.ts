@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { navigate, $, FluentNavigator } from "./fluent";
+import { navigate, $, FluentNavigator } from "./fluent.ts";
 
 // Complex data structure interfaces for testing
 interface RiskItem {

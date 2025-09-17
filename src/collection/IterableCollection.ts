@@ -1,5 +1,5 @@
-import type { Entity } from "./Entity";
-import type { BusinessEntity } from "./types";
+import type { Entity } from "./Entity.ts";
+import type { BusinessEntity } from "./types.ts";
 
 export abstract class IterableCollection<
   TData extends BusinessEntity,
