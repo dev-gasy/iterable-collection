@@ -1,23 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { IterableCollection } from "./IterableCollection.ts";
-import { type BusinessEntity } from "./types.ts";
-import { Entity } from "./Entity.ts";
-
-interface TestData extends BusinessEntity {
-  name: string;
-}
-
-class TestEntity extends Entity<TestData> {}
-
-class TestCollection extends IterableCollection<
-  TestData,
-  TestEntity,
-  BusinessEntity
-> {
-  protected createEntity(data?: TestData): TestEntity {
-    return new TestEntity(data);
-  }
-}
+import { TestCollection, TestEntity, type TestData } from "./TestCollection.ts";
 
 describe("IterableCollection", () => {
   const createTestData = (id: string, name: string): TestData => ({
@@ -234,65 +216,6 @@ describe("IterableCollection", () => {
       expect(result.at(0).id()).toBe("1");
       expect(result.at(1)).toBeInstanceOf(TestEntity);
       expect(result.at(1).id()).toBe("2");
-    });
-  });
-
-  describe("removeAt", () => {
-    it("should return new collection with item removed", () => {
-      // Arrange
-      const item1 = createTestData("1", "Item 1");
-      const item2 = createTestData("2", "Item 2");
-      const item3 = createTestData("3", "Item 3");
-      const collection = new TestCollection([item1, item2, item3]);
-
-      // Act
-      const newCollection = collection.removeAt(1);
-
-      // Assert
-      expect(collection.length).toBe(3);
-      expect(newCollection.length).toBe(2);
-      expect(newCollection.at(0)).toBeInstanceOf(TestEntity);
-      expect(newCollection.at(0).id()).toBe("1");
-      expect(newCollection.at(1)).toBeInstanceOf(TestEntity);
-      expect(newCollection.at(1).id()).toBe("3");
-      expect(newCollection).not.toBe(collection);
-    });
-
-    it("should support fluent chaining with new instances", () => {
-      // Arrange
-      const item1 = createTestData("1", "Item 1");
-      const item2 = createTestData("2", "Item 2");
-      const item3 = createTestData("3", "Item 3");
-      const item4 = createTestData("4", "Item 4");
-      const collection = new TestCollection([item1, item2, item3, item4]);
-
-      // Act
-      const result = collection.removeAt(1).removeAt(1);
-
-      // Assert
-      expect(result).not.toBe(collection);
-      expect(collection.length).toBe(4);
-      expect(result.length).toBe(2);
-      expect(result.at(0)).toBeInstanceOf(TestEntity);
-      expect(result.at(0).id()).toBe("1");
-      expect(result.at(1)).toBeInstanceOf(TestEntity);
-      expect(result.at(1).id()).toBe("4");
-    });
-
-    it("should handle invalid indices gracefully", () => {
-      // Arrange
-      const item = createTestData("1", "Item 1");
-      const collection = new TestCollection([item]);
-
-      // Act
-      const newCollection = collection.removeAt(5);
-
-      // Assert
-      expect(collection.length).toBe(1);
-      expect(newCollection.length).toBe(1);
-      expect(newCollection.at(0)).toBeInstanceOf(TestEntity);
-      expect(newCollection.at(0).id()).toBe("1");
-      expect(newCollection).not.toBe(collection);
     });
   });
 });

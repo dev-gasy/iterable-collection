@@ -1,54 +1,70 @@
 import type { Entity } from "./Entity.ts";
 import type { BusinessEntity } from "./types.ts";
 
+/**
+ * Minimal fluent immutable iterable collection of entities.
+ */
 export abstract class IterableCollection<
   TData extends BusinessEntity,
   TEntity extends Entity<TData, TParent>,
   TParent extends BusinessEntity
-> {
-  declare readonly ["constructor"]: new (
-    items: readonly TData[],
-    parent?: TParent
-  ) => this;
-
+> implements Iterable<TEntity>
+{
   protected readonly items: readonly TData[];
   protected readonly parent?: TParent;
-  protected readonly originals: readonly TData[];
 
-  public constructor(initialItems: readonly TData[] = [], parent?: TParent) {
-    this.items = [...initialItems];
+  constructor(items: readonly TData[] = [], parent?: TParent) {
+    this.items = Object.freeze([...items]);
     this.parent = parent;
-    this.originals = [...initialItems];
   }
 
-  public at(index: number): TEntity {
+  /** Clone factory */
+  create(items: readonly TData[]): this {
+    return new (this.constructor as new (
+      items: readonly TData[],
+      parent?: TParent
+    ) => this)(items, this.parent);
+  }
+
+  /** Access */
+  at(index: number): TEntity {
     return this.createEntity(this.items[index]);
   }
 
-  public get length(): number {
+  get length(): number {
     return this.items.length;
   }
 
-  public push(item: TData): this {
-    return new this.constructor([...this.items, item], this.parent);
+  toArray(): TEntity[] {
+    return [...this];
   }
 
-  public removeAt(index: number): this {
-    return new this.constructor(
-      this.items.filter((_, i) => i !== index),
-      this.parent
+  toDataArray(): readonly TData[] {
+    return this.items;
+  }
+
+  /** Fluent mutators */
+  push(item: TData): this {
+    return this.create([...this.items, item]);
+  }
+
+  filter(predicate: (entity: TEntity, index: number) => boolean): this {
+    return this.create(
+      this.items.filter((d, i) => predicate(this.createEntity(d), i))
     );
   }
 
-  public toArray(): TEntity[] {
-      return Array.from(this);
+  map<U>(mapper: (entity: TEntity, index: number) => U): U[] {
+    return this.items.map((d, i) => mapper(this.createEntity(d), i));
   }
 
-  public *[Symbol.iterator](): Generator<TEntity, void, unknown> {
-    for (const item of this.items) {
-      yield this.createEntity(item);
+  /** Iteration */
+  *[Symbol.iterator](): Generator<TEntity, void, unknown> {
+    for (let i = 0; i < this.length; i++) {
+      yield this.at(i);
     }
   }
 
-  protected abstract createEntity(data?: TData): TEntity;
+  /** Subclass must define how to create entity wrappers */
+  protected abstract createEntity(data: TData): TEntity;
 }
