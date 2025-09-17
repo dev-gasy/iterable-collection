@@ -40,14 +40,14 @@ export abstract class IterableCollection<
     );
   }
 
+  public toArray(): TEntity[] {
+      return Array.from(this);
+  }
+
   public *[Symbol.iterator](): Generator<TEntity, void, unknown> {
     for (const item of this.items) {
       yield this.createEntity(item);
     }
-  }
-
-  protected getIndex(value: TData): number {
-    return this.originals.findIndex((item) => item === value);
   }
 
   protected abstract createEntity(data?: TData): TEntity;

@@ -15,4 +15,8 @@ export class Entity<
   public id(): string | undefined {
     return this.value?._key.id;
   }
+
+  public raw(): TData | undefined {
+    return this.value;
+  }
 }
