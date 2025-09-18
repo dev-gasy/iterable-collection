@@ -31,14 +31,16 @@ export class Quote extends Entity<QuoteData, BusinessEntity> {
   }
 
   getPrimaryParty(): Party | undefined {
-    return this.getParties().pipe(
-      (parties) => parties.toArray().find(party => party.isPrimary())
+    return this.getParties().pipe((parties) =>
+      parties.toArray().find((party) => party.isPrimary())
     );
   }
 
   getTotalVehicleValue(): number {
-    return this.getParties().pipe(
-      (parties) => parties.toArray().reduce((total, party) => total + party.getTotalVehicleValue(), 0)
+    return this.getParties().pipe((parties) =>
+      parties
+        .toArray()
+        .reduce((total, party) => total + party.getTotalVehicleValue(), 0)
     );
   }
 
@@ -47,8 +49,8 @@ export class Quote extends Entity<QuoteData, BusinessEntity> {
   }
 
   hasHighRiskElements(): boolean {
-    return this.getParties().pipe(
-      (parties) => parties.toArray().some(party => party.hasHighRiskDrivers())
+    return this.getParties().pipe((parties) =>
+      parties.toArray().some((party) => party.hasHighRiskDrivers())
     );
   }
 
@@ -71,20 +73,18 @@ export class Quotes extends Collection<QuoteData, Quote, BusinessEntity> {
   }
 
   getActiveQuotes(): Quotes {
-    return this.pipe(
-      (quotes) => quotes.filter(quote => quote.isActive())
-    );
+    return this.pipe((quotes) => quotes.filter((quote) => quote.isActive()));
   }
 
   getHighRiskQuotes(): Quotes {
-    return this.pipe(
-      (quotes) => quotes.filter(quote => quote.hasHighRiskElements())
+    return this.pipe((quotes) =>
+      quotes.filter((quote) => quote.hasHighRiskElements())
     );
   }
 
   getTotalPremium(): number {
-    return this.pipe(
-      (quotes) => quotes.toArray().reduce((total, quote) => total + quote.getPremium(), 0)
+    return this.pipe((quotes) =>
+      quotes.toArray().reduce((total, quote) => total + quote.getPremium(), 0)
     );
   }
 }

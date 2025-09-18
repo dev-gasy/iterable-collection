@@ -24,9 +24,7 @@ export class Party extends Entity<PartyData, QuoteData> {
   }
 
   getTotalVehicleValue(): number {
-    return this.getVehicles().pipe(
-      (vehicles) => vehicles.getTotalValue()
-    );
+    return this.getVehicles().pipe((vehicles) => vehicles.getTotalValue());
   }
 
   hasHighRiskDrivers(): boolean {
@@ -54,20 +52,20 @@ export class Parties extends Collection<PartyData, Party, QuoteData> {
   }
 
   getPrimaryParties(): Parties {
-    return this.pipe(
-      (parties) => parties.filter(party => party.isPrimary())
-    );
+    return this.pipe((parties) => parties.filter((party) => party.isPrimary()));
   }
 
   getPartiesWithHighRisk(): Parties {
-    return this.pipe(
-      (parties) => parties.filter(party => party.hasHighRiskDrivers())
+    return this.pipe((parties) =>
+      parties.filter((party) => party.hasHighRiskDrivers())
     );
   }
 
   getTotalVehicleValue(): number {
-    return this.pipe(
-      (parties) => parties.toArray().reduce((total, party) => total + party.getTotalVehicleValue(), 0)
+    return this.pipe((parties) =>
+      parties
+        .toArray()
+        .reduce((total, party) => total + party.getTotalVehicleValue(), 0)
     );
   }
 }

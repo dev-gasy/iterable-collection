@@ -21,14 +21,12 @@ export class Driver extends Entity<DriverData, PartyData> {
   }
 
   getRecentViolations(): Violations {
-    return this.getViolations().pipe(
-      (violations) => violations.getRecent()
-    );
+    return this.getViolations().pipe((violations) => violations.getRecent());
   }
 
   getTotalPoints(): number {
-    return this.getRecentViolations().pipe(
-      (violations) => violations.getTotalPoints()
+    return this.getRecentViolations().pipe((violations) =>
+      violations.getTotalPoints()
     );
   }
 
@@ -56,31 +54,32 @@ export class Drivers extends Collection<DriverData, Driver, PartyData> {
   }
 
   getHighRiskDrivers(): Drivers {
-    return this.pipe(
-      (drivers) => drivers.filter(driver => driver.isHighRisk())
+    return this.pipe((drivers) =>
+      drivers.filter((driver) => driver.isHighRisk())
     );
   }
 
   getAverageAge(): number {
-    return this.pipe(
-      (drivers) => {
-        const driverArray = drivers.toArray();
-        if (driverArray.length === 0) return 0;
-        const totalAge = driverArray.reduce((sum, driver) => sum + driver.getAge(), 0);
-        return totalAge / driverArray.length;
-      }
-    );
+    return this.pipe((drivers) => {
+      const driverArray = drivers.toArray();
+      if (driverArray.length === 0) return 0;
+      const totalAge = driverArray.reduce(
+        (sum, driver) => sum + driver.getAge(),
+        0
+      );
+      return totalAge / driverArray.length;
+    });
   }
 
   getExperiencedDrivers(): Drivers {
-    return this.pipe(
-      (drivers) => drivers.filter(driver => driver.isExperienced())
+    return this.pipe((drivers) =>
+      drivers.filter((driver) => driver.isExperienced())
     );
   }
 
   getEducatedDrivers(): Drivers {
-    return this.pipe(
-      (drivers) => drivers.filter(driver => driver.hasEducation())
+    return this.pipe((drivers) =>
+      drivers.filter((driver) => driver.hasEducation())
     );
   }
 }

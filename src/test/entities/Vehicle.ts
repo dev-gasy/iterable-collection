@@ -41,26 +41,28 @@ export class Vehicles extends Collection<VehicleData, Vehicle, PartyData> {
   }
 
   getClassicVehicles(): Vehicles {
-    return this.pipe(
-      (vehicles) => vehicles.filter(vehicle => vehicle.isClassic())
+    return this.pipe((vehicles) =>
+      vehicles.filter((vehicle) => vehicle.isClassic())
     );
   }
 
   getTotalValue(): number {
-    return this.pipe(
-      (vehicles) => vehicles.toArray().reduce((total, vehicle) => total + vehicle.getValue(), 0)
+    return this.pipe((vehicles) =>
+      vehicles
+        .toArray()
+        .reduce((total, vehicle) => total + vehicle.getValue(), 0)
     );
   }
 
   getEcoFriendlyVehicles(): Vehicles {
-    return this.pipe(
-      (vehicles) => vehicles.filter(vehicle => vehicle.isEcoFriendly())
+    return this.pipe((vehicles) =>
+      vehicles.filter((vehicle) => vehicle.isEcoFriendly())
     );
   }
 
   getHighMileageVehicles(): Vehicles {
-    return this.pipe(
-      (vehicles) => vehicles.filter(vehicle => vehicle.isHighMileage())
+    return this.pipe((vehicles) =>
+      vehicles.filter((vehicle) => vehicle.isHighMileage())
     );
   }
 }

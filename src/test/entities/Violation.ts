@@ -37,26 +37,30 @@ export class Violations extends Collection<
   }
 
   getRecent(): Violations {
-    return this.pipe(
-      (violations) => violations.filter(violation => violation.isRecent())
+    return this.pipe((violations) =>
+      violations.filter((violation) => violation.isRecent())
     );
   }
 
   getMajorViolations(): Violations {
-    return this.pipe(
-      (violations) => violations.filter(violation => violation.isMajor())
+    return this.pipe((violations) =>
+      violations.filter((violation) => violation.isMajor())
     );
   }
 
   getTotalPoints(): number {
-    return this.pipe(
-      (violations) => violations.toArray().reduce((total, violation) => total + violation.getPoints(), 0)
+    return this.pipe((violations) =>
+      violations
+        .toArray()
+        .reduce((total, violation) => total + violation.getPoints(), 0)
     );
   }
 
   getTotalFines(): number {
-    return this.pipe(
-      (violations) => violations.toArray().reduce((total, violation) => total + violation.getFine(), 0)
+    return this.pipe((violations) =>
+      violations
+        .toArray()
+        .reduce((total, violation) => total + violation.getFine(), 0)
     );
   }
 }

@@ -834,8 +834,9 @@ describe("Entities", () => {
       const entities = new TestCollection(items);
 
       const result = entities.pipe(
-        (collection) =>
-          collection.filter((entity) => entity.getName().length > 4),
+        (collection) => {
+          return collection.filter((entity) => entity.getName().length > 4);
+        },
         (filtered) => filtered.map((entity) => entity.getName().toUpperCase()),
         (names) => names.sort(),
         (sorted) => sorted.reverse(),
@@ -874,7 +875,9 @@ describe("Entities", () => {
       const entities = new TestCollection(items);
 
       const result = entities.pipe(
-        (collection) => collection.filter((entity) => entity.getName().length > 4),
+        (collection) => {
+          return collection.filter((entity) => entity.getName().length > 4);
+        },
         (filtered) => filtered.map((entity) => entity.getName()),
         (names) => names.join(", "),
         (text) => text.toUpperCase()
@@ -904,7 +907,8 @@ describe("Entities", () => {
       const entities = new TestCollection(items);
 
       const result = entities.pipe(
-        (collection) => collection.map((entity) => entity.getName().toUpperCase()),
+        (collection) =>
+          collection.map((entity) => entity.getName().toUpperCase()),
         (names) => names.join(" - ")
       );
 
@@ -912,28 +916,26 @@ describe("Entities", () => {
     });
 
     it("should support very long pipe chains with 16 functions", () => {
-      const items = [
-        partial<TestData>({ _key: { id: "1" }, name: "data" }),
-      ];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "data" })];
       const entities = new TestCollection(items);
 
       const result = entities.pipe(
-        (collection) => collection.at(0),                    // T1: TestEntity
-        (entity) => entity.getName(),                        // T2: string
-        (name) => name.toUpperCase(),                        // T3: string
-        (upper) => upper.split(""),                          // T4: string[]
-        (chars) => chars.reverse(),                          // T5: string[]
-        (reversed) => reversed.join(""),                     // T6: string
-        (joined) => `[${joined}]`,                          // T7: string
-        (bracketed) => bracketed.length,                     // T8: number
-        (length) => length * 2,                             // T9: number
-        (doubled) => doubled.toString(),                     // T10: string
-        (str) => str.padStart(4, "0"),                      // T11: string
-        (padded) => padded.split(""),                       // T12: string[]
-        (chars) => chars.map(c => c === "0" ? "X" : c),     // T13: string[]
-        (mapped) => mapped.join("-"),                        // T14: string
-        (dashed) => dashed.toLowerCase(),                    // T15: string
-        (final) => `Result: ${final}`                       // T16: string
+        (collection) => collection.at(0), // T1: TestEntity
+        (entity) => entity.getName(), // T2: string
+        (name) => name.toUpperCase(), // T3: string
+        (upper) => upper.split(""), // T4: string[]
+        (chars) => chars.reverse(), // T5: string[]
+        (reversed) => reversed.join(""), // T6: string
+        (joined) => `[${joined}]`, // T7: string
+        (bracketed) => bracketed.length, // T8: number
+        (length) => length * 2, // T9: number
+        (doubled) => doubled.toString(), // T10: string
+        (str) => str.padStart(4, "0"), // T11: string
+        (padded) => padded.split(""), // T12: string[]
+        (chars) => chars.map((c) => (c === "0" ? "X" : c)), // T13: string[]
+        (mapped) => mapped.join("-"), // T14: string
+        (dashed) => dashed.toLowerCase(), // T15: string
+        (final) => `Result: ${final}` // T16: string
       );
 
       expect(result).toBe("Result: x-x-1-2");
@@ -1005,9 +1007,7 @@ describe("Entity Pipe and Compose Tests", () => {
     it("should support single function pipe on entities", () => {
       const driver = new Driver(testData.drivers[0]);
 
-      const result = driver.pipe(
-        (entity) => entity.getFullName()
-      );
+      const result = driver.pipe((entity) => entity.getFullName());
 
       expect(result).toBe("John Doe");
     });
@@ -1032,7 +1032,9 @@ describe("Entity Pipe and Compose Tests", () => {
         (entity) => entity.getDrivers(),
         (drivers) => drivers.getHighRiskDrivers(),
         (highRisk) => highRisk.length,
-        (count) => count > 0 ? "Has high risk drivers" : "No high risk drivers"
+        (count) => {
+          return count > 0 ? "Has high risk drivers" : "No high risk drivers";
+        }
       );
 
       expect(result).toBe("Has high risk drivers");
@@ -1097,12 +1099,13 @@ describe("Entity Pipe and Compose Tests", () => {
       const result = quotes.pipe(
         (collection) => collection.getActiveQuotes(),
         (activeQuotes) => activeQuotes.at(0),
-        (quote) => quote.pipe(
-          (entity) => entity.getPrimaryParty(),
-          (party) => party?.getDrivers(),
-          (drivers) => drivers?.map((driver) => driver.getFullName()),
-          (names) => names?.join(" & ") ?? "No drivers"
-        )
+        (quote) =>
+          quote.pipe(
+            (entity) => entity.getPrimaryParty(),
+            (party) => party?.getDrivers(),
+            (drivers) => drivers?.map((driver) => driver.getFullName()),
+            (names) => names?.join(" & ") ?? "No drivers"
+          )
       );
 
       expect(result).toBe("John Doe & Jane Smith");
@@ -1933,12 +1936,12 @@ describe("Core Integration: Entity + Entities + Immer", () => {
       const riskAssessment = {
         hasClassicVehicles: vehicles?.toArray().some((v) => v.isClassic()),
         hasHighRiskDrivers: drivers?.toArray().some((d) => d.isHighRisk()),
-        totalVehicleValue: vehicles
-          ?.toArray()
-          .reduce((sum, v) => sum + v.getValue(), 0),
-        totalPoints: drivers
-          ?.toArray()
-          .reduce((sum, d) => sum + d.getTotalPoints(), 0),
+        totalVehicleValue: vehicles?.pipe((v) =>
+          v.toArray().reduce((sum, v) => sum + v.getValue(), 0)
+        ),
+        totalPoints: drivers?.pipe((d) =>
+          d.toArray().reduce((sum, d) => sum + d.getTotalPoints(), 0)
+        ),
       };
 
       expect(riskAssessment.hasClassicVehicles).toBe(true);

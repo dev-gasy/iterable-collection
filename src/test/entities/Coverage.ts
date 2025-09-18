@@ -34,20 +34,22 @@ export class Coverages extends Collection<CoverageData, Coverage, QuoteData> {
   }
 
   getRequiredCoverages(): Coverages {
-    return this.pipe(
-      (coverages) => coverages.filter(coverage => coverage.isRequired())
+    return this.pipe((coverages) =>
+      coverages.filter((coverage) => coverage.isRequired())
     );
   }
 
   getTotalPremium(): number {
-    return this.pipe(
-      (coverages) => coverages.toArray().reduce((total, coverage) => total + coverage.getPremium(), 0)
+    return this.pipe((coverages) =>
+      coverages
+        .toArray()
+        .reduce((total, coverage) => total + coverage.getPremium(), 0)
     );
   }
 
   getCoverageByType(type: string): Coverage | undefined {
-    return this.pipe(
-      (coverages) => coverages.toArray().find(coverage => coverage.getType() === type)
+    return this.pipe((coverages) =>
+      coverages.toArray().find((coverage) => coverage.getType() === type)
     );
   }
 }
