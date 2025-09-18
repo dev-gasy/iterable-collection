@@ -1,4 +1,5 @@
 import { produce, type Draft } from "immer";
+
 import type { Entity } from "./Entity.ts";
 import type { BusinessEntity } from "./types.ts";
 
@@ -17,7 +18,7 @@ export abstract class IterableCollection<
   /** Constructor */
   constructor(items: readonly TData[] = [], parent?: TParent) {
     this.items = Object.freeze([...items]);
-    this.parent = parent;
+    this.parent = Object.freeze(parent);
   }
 
   /** Clone factory */
@@ -47,25 +48,31 @@ export abstract class IterableCollection<
 
   /** Fluent mutators */
   push(item: TData): this {
-    return this.create(produce(this.items, draft => {
-      draft.push(item as Draft<TData>);
-    }));
+    return this.create(
+      produce(this.items, (draft) => {
+        draft.push(item as Draft<TData>);
+      })
+    );
   }
 
   insertAt(index: number, item: TData): this {
     const clampedIndex = Math.max(0, Math.min(index, this.items.length));
-    return this.create(produce(this.items, draft => {
-      draft.splice(clampedIndex, 0, item as Draft<TData>);
-    }));
+    return this.create(
+      produce(this.items, (draft) => {
+        draft.splice(clampedIndex, 0, item as Draft<TData>);
+      })
+    );
   }
 
   removeAt(index: number): this {
     if (index < 0 || index >= this.items.length) {
       return this;
     }
-    return this.create(produce(this.items, draft => {
-      draft.splice(index, 1);
-    }));
+    return this.create(
+      produce(this.items, (draft) => {
+        draft.splice(index, 1);
+      })
+    );
   }
 
   filter(predicate: (entity: TEntity, index: number) => boolean): this {

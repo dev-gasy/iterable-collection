@@ -2,12 +2,9 @@ import { describe, it, expect } from "vitest";
 import { TestCollection, TestEntity, type TestData } from "./TestCollection";
 import { IterableCollection } from "../collection/IterableCollection";
 import type { BusinessEntity } from "../collection/types";
+import { partial } from "../partial/utils";
 
 describe("IterableCollection", () => {
-  const createTestData = (id: string, name: string): TestData => ({
-    _key: { rootId: "test", revisionNo: 1, id },
-    name,
-  });
 
   describe("constructor", () => {
     it("should create empty collection", () => {
@@ -21,8 +18,8 @@ describe("IterableCollection", () => {
     it("should create collection with initial items", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
 
       // Act
@@ -36,7 +33,7 @@ describe("IterableCollection", () => {
   describe("at", () => {
     it("should return entity at valid index", () => {
       // Arrange
-      const item = createTestData("1", "Item 1");
+      const item = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
       const collection = new TestCollection([item]);
 
       // Act
@@ -72,11 +69,11 @@ describe("IterableCollection", () => {
       expect(collection.length).toBe(0);
 
       // Act & Assert - after first push
-      const collection1 = collection.push(createTestData("1", "Item 1"));
+      const collection1 = collection.push(partial<TestData>({ _key: { id: "1" }, name: "Item 1" }));
       expect(collection1.length).toBe(1);
 
       // Act & Assert - after second push
-      const collection2 = collection1.push(createTestData("2", "Item 2"));
+      const collection2 = collection1.push(partial<TestData>({ _key: { id: "2" }, name: "Item 2" }));
       expect(collection2.length).toBe(2);
     });
   });
@@ -96,9 +93,9 @@ describe("IterableCollection", () => {
     it("should iterate over entities using for...of", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
-        createTestData("3", "Item 3"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
+        partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
       ];
       const collection = new TestCollection(items);
 
@@ -121,8 +118,8 @@ describe("IterableCollection", () => {
     it("should work with Array.from", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -140,8 +137,8 @@ describe("IterableCollection", () => {
     it("should work with spread operator", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -159,8 +156,8 @@ describe("IterableCollection", () => {
     it("should work with manual iterator", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
       const iterator = collection[Symbol.iterator]();
@@ -188,7 +185,7 @@ describe("IterableCollection", () => {
     it("should return new collection with added item", () => {
       // Arrange
       const collection = new TestCollection();
-      const item = createTestData("1", "Item 1");
+      const item = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
 
       // Act
       const newCollection = collection.push(item);
@@ -204,8 +201,8 @@ describe("IterableCollection", () => {
     it("should support fluent chaining with new instances", () => {
       // Arrange
       const collection = new TestCollection();
-      const item1 = createTestData("1", "Item 1");
-      const item2 = createTestData("2", "Item 2");
+      const item1 = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
+      const item2 = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
 
       // Act
       const result = collection.push(item1).push(item2);
@@ -223,9 +220,9 @@ describe("IterableCollection", () => {
     it("should maintain immutability when pushing multiple items", () => {
       // Arrange
       const collection = new TestCollection();
-      const item1 = createTestData("1", "Item 1");
-      const item2 = createTestData("2", "Item 2");
-      const item3 = createTestData("3", "Item 3");
+      const item1 = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
+      const item2 = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
+      const item3 = partial<TestData>({ _key: { id: "3" }, name: "Item 3" });
 
       // Act
       const step1 = collection.push(item1);
@@ -247,11 +244,11 @@ describe("IterableCollection", () => {
     it("should insert item at valid index", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("3", "Item 3"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
       ];
       const collection = new TestCollection(items);
-      const newItem = createTestData("2", "Item 2");
+      const newItem = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
 
       // Act
       const result = collection.insertAt(1, newItem);
@@ -265,9 +262,9 @@ describe("IterableCollection", () => {
 
     it("should insert at beginning when index is 0", () => {
       // Arrange
-      const items = [createTestData("2", "Item 2")];
+      const items = [partial<TestData>({ _key: { id: "2" }, name: "Item 2" })];
       const collection = new TestCollection(items);
-      const newItem = createTestData("1", "Item 1");
+      const newItem = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
 
       // Act
       const result = collection.insertAt(0, newItem);
@@ -280,9 +277,9 @@ describe("IterableCollection", () => {
 
     it("should insert at end when index equals length", () => {
       // Arrange
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new TestCollection(items);
-      const newItem = createTestData("2", "Item 2");
+      const newItem = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
 
       // Act
       const result = collection.insertAt(1, newItem);
@@ -295,9 +292,9 @@ describe("IterableCollection", () => {
 
     it("should clamp negative index to 0", () => {
       // Arrange
-      const items = [createTestData("2", "Item 2")];
+      const items = [partial<TestData>({ _key: { id: "2" }, name: "Item 2" })];
       const collection = new TestCollection(items);
-      const newItem = createTestData("1", "Item 1");
+      const newItem = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
 
       // Act
       const result = collection.insertAt(-5, newItem);
@@ -310,9 +307,9 @@ describe("IterableCollection", () => {
 
     it("should clamp large index to length", () => {
       // Arrange
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new TestCollection(items);
-      const newItem = createTestData("2", "Item 2");
+      const newItem = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
 
       // Act
       const result = collection.insertAt(999, newItem);
@@ -326,7 +323,7 @@ describe("IterableCollection", () => {
     it("should work on empty collection", () => {
       // Arrange
       const collection = new TestCollection();
-      const newItem = createTestData("1", "Item 1");
+      const newItem = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
 
       // Act
       const result = collection.insertAt(0, newItem);
@@ -341,9 +338,9 @@ describe("IterableCollection", () => {
     it("should remove item at valid index", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
-        createTestData("3", "Item 3"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
+        partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
       ];
       const collection = new TestCollection(items);
 
@@ -359,8 +356,8 @@ describe("IterableCollection", () => {
     it("should remove first item", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -375,8 +372,8 @@ describe("IterableCollection", () => {
     it("should remove last item", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -391,8 +388,8 @@ describe("IterableCollection", () => {
     it("should handle negative index", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -407,7 +404,7 @@ describe("IterableCollection", () => {
 
     it("should handle index beyond bounds", () => {
       // Arrange
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new TestCollection(items);
 
       // Act
@@ -420,7 +417,7 @@ describe("IterableCollection", () => {
 
     it("should work on single item collection", () => {
       // Arrange
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new TestCollection(items);
 
       // Act
@@ -446,9 +443,9 @@ describe("IterableCollection", () => {
     it("should filter items based on predicate", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
-        createTestData("3", "Item 3"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
+        partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
       ];
       const collection = new TestCollection(items);
 
@@ -466,8 +463,8 @@ describe("IterableCollection", () => {
     it("should return empty collection when no items match", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -481,8 +478,8 @@ describe("IterableCollection", () => {
     it("should return all items when all match", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -509,9 +506,9 @@ describe("IterableCollection", () => {
     it("should provide correct index to predicate", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
-        createTestData("3", "Item 3"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
+        partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
       ];
       const collection = new TestCollection(items);
       const indices: number[] = [];
@@ -531,8 +528,8 @@ describe("IterableCollection", () => {
     it("should transform items using mapper function", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -546,8 +543,8 @@ describe("IterableCollection", () => {
     it("should provide correct index to mapper", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -574,8 +571,8 @@ describe("IterableCollection", () => {
     it("should support complex transformations", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -598,8 +595,8 @@ describe("IterableCollection", () => {
     it("should return array of entities", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -627,7 +624,7 @@ describe("IterableCollection", () => {
 
     it("should return new array instance", () => {
       // Arrange
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new TestCollection(items);
 
       // Act
@@ -644,8 +641,8 @@ describe("IterableCollection", () => {
     it("should return readonly array of data", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
@@ -671,7 +668,7 @@ describe("IterableCollection", () => {
 
     it("should return immutable reference to internal data", () => {
       // Arrange
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new TestCollection(items);
 
       // Act
@@ -686,7 +683,7 @@ describe("IterableCollection", () => {
     it("should create new instance with same type", () => {
       // Arrange
       const collection = new TestCollection();
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
 
       // Act
       const result = collection.create(items);
@@ -702,7 +699,7 @@ describe("IterableCollection", () => {
       // Arrange
       const parent = { _key: { rootId: "parent", revisionNo: 1 } };
       const collection = new TestCollection([], parent);
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
 
       // Act
       const result = collection.create(items);
@@ -719,7 +716,7 @@ describe("IterableCollection", () => {
       const items = [
         null as any,
         undefined as any,
-        createTestData("1", "Item 1"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
       ];
       const collection = new TestCollection(items.filter(Boolean));
 
@@ -730,7 +727,7 @@ describe("IterableCollection", () => {
 
     it("should handle collections with mixed valid/invalid data", () => {
       // Arrange
-      const validItem = createTestData("1", "Item 1");
+      const validItem = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
       const invalidItem = { invalid: "data" } as any;
       const collection = new TestCollection([validItem]);
 
@@ -748,7 +745,7 @@ describe("IterableCollection", () => {
     it("should handle very large collections", () => {
       // Arrange
       const items = Array.from({ length: 10000 }, (_, i) =>
-        createTestData(i.toString(), `Item ${i}`)
+        partial<TestData>({ _key: { id: i.toString() }, name: `Item ${i}` })
       );
       const collection = new TestCollection(items);
 
@@ -768,12 +765,12 @@ describe("IterableCollection", () => {
 
     it("should handle concurrent modifications safely", () => {
       // Arrange
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new TestCollection(items);
 
       // Act - simulate concurrent modifications
       const results = Array.from({ length: 100 }, (_, i) =>
-        collection.push(createTestData(i.toString(), `Item ${i}`))
+        collection.push(partial<TestData>({ _key: { id: i.toString() }, name: `Item ${i}` }))
       );
 
       // Assert - original should be unchanged
@@ -784,8 +781,8 @@ describe("IterableCollection", () => {
 
     it("should handle circular reference protection", () => {
       // Arrange
-      const item1 = createTestData("1", "Item 1");
-      const item2 = createTestData("2", "Item 2");
+      const item1 = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
+      const item2 = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
       const collection = new TestCollection([item1, item2]);
 
       // Act - test that entities don't create circular references
@@ -800,7 +797,7 @@ describe("IterableCollection", () => {
 
     it("should handle memory efficiency with repeated access", () => {
       // Arrange
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new TestCollection(items);
 
       // Act - access same entity multiple times
@@ -815,7 +812,7 @@ describe("IterableCollection", () => {
 
     it("should preserve data integrity during transformations", () => {
       // Arrange
-      const originalData = createTestData("1", "Original");
+      const originalData = partial<TestData>({ _key: { id: "1" }, name: "Original" });
       const collection = new TestCollection([originalData]);
 
       // Act
@@ -833,13 +830,13 @@ describe("IterableCollection", () => {
     it("should handle floating point indices gracefully", () => {
       // Arrange
       const items = [
-        createTestData("1", "Item 1"),
-        createTestData("2", "Item 2"),
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
       const collection = new TestCollection(items);
 
       // Act & Assert - floating point should be handled as integers
-      const result1 = collection.insertAt(0.7, createTestData("0", "Item 0"));
+      const result1 = collection.insertAt(0.7, partial<TestData>({ _key: { id: "0" }, name: "Item 0" }));
       const result2 = collection.removeAt(1.9);
 
       expect(result1.at(0).id()).toBe("0"); // Should insert at index 0
@@ -848,15 +845,15 @@ describe("IterableCollection", () => {
 
     it("should handle Infinity and NaN indices", () => {
       // Arrange
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new TestCollection(items);
 
       // Act & Assert
       const infinityResult = collection.insertAt(
         Infinity,
-        createTestData("2", "Item 2")
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" })
       );
-      const nanResult = collection.insertAt(NaN, createTestData("3", "Item 3"));
+      const nanResult = collection.insertAt(NaN, partial<TestData>({ _key: { id: "3" }, name: "Item 3" }));
 
       expect(infinityResult.length).toBe(2);
       expect(nanResult.length).toBe(2);
@@ -871,13 +868,13 @@ describe("IterableCollection", () => {
 
       sizes.forEach((size) => {
         const items = Array.from({ length: size }, (_, i) =>
-          createTestData(i.toString(), `Item ${i}`)
+          partial<TestData>({ _key: { id: i.toString() }, name: `Item ${i}` })
         );
         const collection = new TestCollection(items);
 
         // Act - measure push operation
         const start = performance.now();
-        collection.push(createTestData("new", "New Item"));
+        collection.push(partial<TestData>({ _key: { id: "new" }, name: "New Item" }));
         const end = performance.now();
 
         results.push(end - start);
@@ -892,7 +889,7 @@ describe("IterableCollection", () => {
       // Arrange
       const collection = new TestCollection();
       const items = Array.from({ length: 100 }, (_, i) =>
-        createTestData(i.toString(), `Item ${i}`)
+        partial<TestData>({ _key: { id: i.toString() }, name: `Item ${i}` })
       );
 
       // Act
@@ -913,7 +910,7 @@ describe("IterableCollection", () => {
     it("should optimize iteration performance", () => {
       // Arrange
       const items = Array.from({ length: 1000 }, (_, i) =>
-        createTestData(i.toString(), `Item ${i}`)
+        partial<TestData>({ _key: { id: i.toString() }, name: `Item ${i}` })
       );
       const collection = new TestCollection(items);
 
@@ -937,7 +934,7 @@ describe("IterableCollection", () => {
   describe("Type safety and generics", () => {
     it("should maintain type safety through transformations", () => {
       // Arrange
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new TestCollection(items);
 
       // Act & Assert - TypeScript should enforce correct types
@@ -970,7 +967,7 @@ describe("IterableCollection", () => {
         }
       }
 
-      const items = [createTestData("1", "Item 1")];
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
       const collection = new ExtendedTestCollection(items, undefined);
 
       // Act
