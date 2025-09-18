@@ -2,21 +2,25 @@ import { produce, type Draft } from "immer";
 
 import type { Entity } from "./Entity.ts";
 import type { BusinessEntity } from "./types.ts";
+import { Pipeable } from "./Pipeable.ts";
 
 /**
  * Minimal fluent immutable iterable Entities of entities.
  */
-export abstract class Entities<
-  TData extends BusinessEntity,
-  TEntity extends Entity<TData, TParent>,
-  TParent extends BusinessEntity
-> implements Iterable<TEntity>
+export abstract class Collection<
+    TData extends BusinessEntity,
+    TEntity extends Entity<TData, TParent>,
+    TParent extends BusinessEntity
+  >
+  extends Pipeable
+  implements Iterable<TEntity>
 {
   protected readonly items: readonly TData[];
   protected readonly parent?: TParent;
 
   /** Constructor */
   constructor(items: readonly TData[] = [], parent?: TParent) {
+    super();
     this.items = Object.freeze([...items]);
     this.parent = Object.freeze(parent);
   }

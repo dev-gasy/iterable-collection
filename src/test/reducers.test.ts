@@ -4,7 +4,7 @@ import { produce } from "immer";
 import { partial } from "../partial/utils";
 import type { BusinessEntity } from "../model/types";
 import { Entity } from "../model/Entity";
-import { Entities } from "../model/Entities";
+import { Collection } from "../model/Collection";
 
 type Reducer<State, Payload> = (state: State, payload: Payload) => State;
 
@@ -23,7 +23,7 @@ class TodoEntity extends Entity<TodoData> {
   }
 }
 
-class TodoEntities extends Entities<TodoData, TodoEntity, BusinessEntity> {
+class TodoEntities extends Collection<TodoData, TodoEntity, BusinessEntity> {
   protected createEntity(data?: TodoData): TodoEntity {
     return new TodoEntity(data);
   }
@@ -88,11 +88,14 @@ const insertTodoAtReducer: Reducer<
 describe("Flux-style Entities reducers", () => {
   describe("addTodoReducer", () => {
     it("should add a new todo to empty Entities", () => {
+      // Arrange
       const state = new TodoEntities();
       const payload = { name: "Learn reducers", id: "1" };
 
+      // Act
       const newState = addTodoReducer(state, payload);
 
+      // Assert
       expect(newState.length).toBe(1);
       expect(newState.at(0).name).toBe("Learn reducers");
       expect(newState.at(0).completed).toBe(false);
@@ -101,14 +104,17 @@ describe("Flux-style Entities reducers", () => {
     });
 
     it("should add a new todo to existing Entities", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({ _key: { id: "1" }, name: "First todo" }),
       ];
       const state = new TodoEntities(initialData);
       const payload = { name: "Second todo", id: "2" };
 
+      // Act
       const newState = addTodoReducer(state, payload);
 
+      // Assert
       expect(newState.length).toBe(2);
       expect(newState.at(0).name).toBe("First todo");
       expect(newState.at(1).name).toBe("Second todo");
@@ -118,6 +124,7 @@ describe("Flux-style Entities reducers", () => {
 
   describe("toggleTodoReducer", () => {
     it("should toggle todo completion status", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -133,14 +140,17 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { id: "1" };
 
+      // Act
       const newState = toggleTodoReducer(state, payload);
 
+      // Assert
       expect(newState.at(0).completed).toBe(true);
       expect(newState.at(1).completed).toBe(true);
       expect(newState).not.toBe(state);
     });
 
     it("should not affect other todos", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -156,13 +166,16 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { id: "1" };
 
+      // Act
       const newState = toggleTodoReducer(state, payload);
 
+      // Assert
       expect(newState.at(1).name).toBe("Second todo");
       expect(newState.at(1).completed).toBe(true);
     });
 
     it("should return same Entities when id not found", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -173,8 +186,10 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { id: "999" };
 
+      // Act
       const newState = toggleTodoReducer(state, payload);
 
+      // Assert
       expect(newState.at(0).completed).toBe(false);
       expect(newState).not.toBe(state);
     });
@@ -182,6 +197,7 @@ describe("Flux-style Entities reducers", () => {
 
   describe("removeTodoReducer", () => {
     it("should remove todo by id", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -202,8 +218,10 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { id: "2" };
 
+      // Act
       const newState = removeTodoReducer(state, payload);
 
+      // Assert
       expect(newState.length).toBe(2);
       expect(newState.at(0).id()).toBe("1");
       expect(newState.at(1).id()).toBe("3");
@@ -211,6 +229,7 @@ describe("Flux-style Entities reducers", () => {
     });
 
     it("should return same Entities when id not found", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -221,19 +240,24 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { id: "999" };
 
+      // Act
       const newState = removeTodoReducer(state, payload);
 
+      // Assert
       expect(newState.length).toBe(1);
       expect(newState.at(0).id()).toBe("1");
       expect(newState).not.toBe(state);
     });
 
     it("should handle empty Entities", () => {
+      // Arrange
       const state = new TodoEntities();
       const payload = { id: "1" };
 
+      // Act
       const newState = removeTodoReducer(state, payload);
 
+      // Assert
       expect(newState.length).toBe(0);
       expect(newState).not.toBe(state);
     });
@@ -241,6 +265,7 @@ describe("Flux-style Entities reducers", () => {
 
   describe("updateTodoNameReducer", () => {
     it("should update todo name by id", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -256,8 +281,10 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { id: "1", name: "New name" };
 
+      // Act
       const newState = updateTodoNameReducer(state, payload);
 
+      // Assert
       expect(newState.at(0).name).toBe("New name");
       expect(newState.at(0).completed).toBe(false);
       expect(newState.at(1).name).toBe("Another todo");
@@ -265,6 +292,7 @@ describe("Flux-style Entities reducers", () => {
     });
 
     it("should not affect completion status", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -275,12 +303,15 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { id: "1", name: "New name" };
 
+      // Act
       const newState = updateTodoNameReducer(state, payload);
 
+      // Assert
       expect(newState.at(0).completed).toBe(true);
     });
 
     it("should return same Entities when id not found", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -291,8 +322,10 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { id: "999", name: "New name" };
 
+      // Act
       const newState = updateTodoNameReducer(state, payload);
 
+      // Assert
       expect(newState.at(0).name).toBe("First todo");
       expect(newState).not.toBe(state);
     });
@@ -300,6 +333,7 @@ describe("Flux-style Entities reducers", () => {
 
   describe("clearCompletedReducer", () => {
     it("should remove all completed todos", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -324,8 +358,10 @@ describe("Flux-style Entities reducers", () => {
       ];
       const state = new TodoEntities(initialData);
 
+      // Act
       const newState = clearCompletedReducer(state);
 
+      // Assert
       expect(newState.length).toBe(2);
       expect(newState.at(0).name).toBe("Active todo");
       expect(newState.at(1).name).toBe("Another active");
@@ -333,6 +369,7 @@ describe("Flux-style Entities reducers", () => {
     });
 
     it("should return empty Entities when all todos are completed", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -347,12 +384,15 @@ describe("Flux-style Entities reducers", () => {
       ];
       const state = new TodoEntities(initialData);
 
+      // Act
       const newState = clearCompletedReducer(state);
 
+      // Assert
       expect(newState.length).toBe(0);
     });
 
     it("should return same Entities when no todos are completed", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -367,8 +407,10 @@ describe("Flux-style Entities reducers", () => {
       ];
       const state = new TodoEntities(initialData);
 
+      // Act
       const newState = clearCompletedReducer(state);
 
+      // Assert
       expect(newState.length).toBe(2);
       expect(newState.at(0).name).toBe("Active todo 1");
       expect(newState.at(1).name).toBe("Active todo 2");
@@ -376,10 +418,13 @@ describe("Flux-style Entities reducers", () => {
     });
 
     it("should handle empty Entities", () => {
+      // Arrange
       const state = new TodoEntities();
 
+      // Act
       const newState = clearCompletedReducer(state);
 
+      // Assert
       expect(newState.length).toBe(0);
       expect(newState).not.toBe(state);
     });
@@ -387,6 +432,7 @@ describe("Flux-style Entities reducers", () => {
 
   describe("insertTodoAtReducer", () => {
     it("should insert todo at specified index", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -402,8 +448,10 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { index: 1, name: "Second todo", id: "2" };
 
+      // Act
       const newState = insertTodoAtReducer(state, payload);
 
+      // Assert
       expect(newState.length).toBe(3);
       expect(newState.at(0).name).toBe("First todo");
       expect(newState.at(1).name).toBe("Second todo");
@@ -412,6 +460,7 @@ describe("Flux-style Entities reducers", () => {
     });
 
     it("should insert at beginning when index is 0", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "2" },
@@ -422,14 +471,17 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { index: 0, name: "First todo", id: "1" };
 
+      // Act
       const newState = insertTodoAtReducer(state, payload);
 
+      // Assert
       expect(newState.length).toBe(2);
       expect(newState.at(0).name).toBe("First todo");
       expect(newState.at(1).name).toBe("Second todo");
     });
 
     it("should append when index exceeds length", () => {
+      // Arrange
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -440,8 +492,10 @@ describe("Flux-style Entities reducers", () => {
       const state = new TodoEntities(initialData);
       const payload = { index: 10, name: "Last todo", id: "2" };
 
+      // Act
       const newState = insertTodoAtReducer(state, payload);
 
+      // Assert
       expect(newState.length).toBe(2);
       expect(newState.at(0).name).toBe("First todo");
       expect(newState.at(1).name).toBe("Last todo");

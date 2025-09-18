@@ -2,667 +2,40 @@ import { describe, it, expect } from "vitest";
 import { produce } from "immer";
 
 import { any, partial } from "../partial/utils";
-import type { BusinessEntity } from "../model/types";
-import { Entity } from "../model/Entity";
-import { Entities } from "../model/Entities";
-
-// Test Data Type for basic IterableEntities tests
-interface TestData extends BusinessEntity {
-  name: string;
-}
-
-class TestEntity extends Entity<TestData, BusinessEntity> {
-  getName(): string {
-    return this.raw()?.name ?? "Unknown";
-  }
-}
-
-class TestEntities extends Entities<TestData, TestEntity, BusinessEntity> {
-  protected createEntity(data?: TestData): TestEntity {
-    return new TestEntity(data, this.parent);
-  }
-}
-
-// Domain Data Types for entity/Entitiess tests
-interface VehicleData extends BusinessEntity {
-  vin?: string;
-  make: string;
-  model: string;
-  year: number;
-  value: number;
-  color?: string;
-  mileage?: number;
-  fuelType?: "gas" | "diesel" | "electric" | "hybrid";
-}
-
-interface ViolationData extends BusinessEntity {
-  type: string;
-  date: string;
-  points: number;
-  fine?: number;
-  description?: string;
-  location?: string;
-}
-
-interface DriverData extends BusinessEntity {
-  licenseNumber?: string;
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  licenseState?: string;
-  violations?: ViolationData[];
-  experience?: number; // years of driving
-  education?: "high_school" | "college" | "graduate";
-}
-
-interface PartyData extends BusinessEntity {
-  name: string;
-  type: "primary" | "additional";
-  vehicles?: VehicleData[];
-  drivers?: DriverData[];
-  address?: string;
-  phone?: string;
-  email?: string;
-}
-
-interface CoverageData extends BusinessEntity {
-  type: string;
-  limit: number;
-  deductible: number;
-  premium: number;
-  description?: string;
-  isRequired?: boolean;
-}
-
-interface QuoteData extends BusinessEntity {
-  quoteNumber: string;
-  status: "draft" | "active" | "expired";
-  premium: number;
-  effectiveDate?: string;
-  expirationDate?: string;
-  parties?: PartyData[];
-  coverages?: CoverageData[];
-  agent?: string;
-  discounts?: number;
-}
-
-// Entity Classes
-class VehicleEntity extends Entity<VehicleData, PartyData> {
-  getDisplayName(): string {
-    const data = this.raw();
-    if (!data) return "Unknown Vehicle";
-    const color = data.color ? ` ${data.color}` : "";
-    return `${data.year}${color} ${data.make} ${data.model}`;
-  }
-
-  getValue(): number {
-    return this.raw()?.value ?? 0;
-  }
-
-  isClassic(): boolean {
-    const currentYear = new Date().getFullYear();
-    const vehicleYear = this.raw()?.year ?? currentYear;
-    return currentYear - vehicleYear > 25;
-  }
-
-  isEcoFriendly(): boolean {
-    const fuelType = this.raw()?.fuelType;
-    return fuelType === "electric" || fuelType === "hybrid";
-  }
-
-  isHighMileage(): boolean {
-    const mileage = this.raw()?.mileage ?? 0;
-    return mileage > 100000;
-  }
-
-  getVin(): string | undefined {
-    return this.raw()?.vin;
-  }
-}
-
-class ViolationEntity extends Entity<ViolationData, DriverData> {
-  isRecent(): boolean {
-    const violationDate = new Date(this.raw()?.date ?? "");
-    const threeYearsAgo = new Date();
-    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
-    return violationDate > threeYearsAgo;
-  }
-
-  getPoints(): number {
-    return this.raw()?.points ?? 0;
-  }
-
-  isMajor(): boolean {
-    return this.getPoints() >= 4;
-  }
-
-  getFine(): number {
-    return this.raw()?.fine ?? 0;
-  }
-
-  getDescription(): string {
-    return this.raw()?.description ?? this.raw()?.type ?? "Unknown Violation";
-  }
-}
-
-class DriverEntity extends Entity<DriverData, PartyData> {
-  getFullName(): string {
-    const data = this.raw();
-    return data ? `${data.firstName} ${data.lastName}` : "Unknown Driver";
-  }
-
-  getAge(): number {
-    const birthDate = new Date(this.raw()?.dateOfBirth ?? "");
-    const today = new Date();
-    return today.getFullYear() - birthDate.getFullYear();
-  }
-
-  getViolations(): ViolationEntities {
-    const data = this.raw();
-    return new ViolationEntities(data?.violations ?? [], data);
-  }
-
-  getRecentViolations(): ViolationEntities {
-    return this.getViolations().getRecent();
-  }
-
-  getTotalPoints(): number {
-    return this.getRecentViolations().getTotalPoints();
-  }
-
-  isHighRisk(): boolean {
-    return this.getTotalPoints() > 6 || this.getAge() < 25;
-  }
-
-  isExperienced(): boolean {
-    const experience = this.raw()?.experience ?? 0;
-    return experience >= 10;
-  }
-
-  hasEducation(): boolean {
-    return !!this.raw()?.education;
-  }
-
-  getLicenseNumber(): string | undefined {
-    return this.raw()?.licenseNumber;
-  }
-}
-
-class PartyEntity extends Entity<PartyData, QuoteData> {
-  getName(): string {
-    return this.raw()?.name ?? "Unknown Party";
-  }
-
-  isPrimary(): boolean {
-    return this.raw()?.type === "primary";
-  }
-
-  getVehicles(): VehicleEntities {
-    const data = this.raw();
-    return new VehicleEntities(data?.vehicles ?? [], data);
-  }
-
-  getDrivers(): DriverEntities {
-    const data = this.raw();
-    return new DriverEntities(data?.drivers ?? [], data);
-  }
-
-  getTotalVehicleValue(): number {
-    return this.getVehicles().getTotalValue();
-  }
-
-  hasHighRiskDrivers(): boolean {
-    return this.getDrivers().getHighRiskDrivers().length > 0;
-  }
-
-  getAddress(): string | undefined {
-    return this.raw()?.address;
-  }
-
-  getContactInfo(): { phone?: string; email?: string } {
-    const data = this.raw();
-    return {
-      phone: data?.phone,
-      email: data?.email,
-    };
-  }
-}
-
-class CoverageEntity extends Entity<CoverageData, QuoteData> {
-  getType(): string {
-    return this.raw()?.type ?? "Unknown";
-  }
-
-  getPremium(): number {
-    return this.raw()?.premium ?? 0;
-  }
-
-  getLimit(): number {
-    return this.raw()?.limit ?? 0;
-  }
-
-  getDeductible(): number {
-    return this.raw()?.deductible ?? 0;
-  }
-
-  isRequired(): boolean {
-    return this.raw()?.isRequired ?? false;
-  }
-
-  getDescription(): string {
-    return this.raw()?.description ?? this.getType();
-  }
-}
-
-class QuoteEntity extends Entity<QuoteData, BusinessEntity> {
-  getQuoteNumber(): string {
-    return this.raw()?.quoteNumber ?? "Unknown";
-  }
-
-  getStatus(): string {
-    return this.raw()?.status ?? "draft";
-  }
-
-  getPremium(): number {
-    const premium = this.raw()?.premium;
-    return typeof premium === "number" && !isNaN(premium) ? premium : 0;
-  }
-
-  getParties(): PartyEntities {
-    const data = this.raw();
-    return new PartyEntities(data?.parties ?? [], data);
-  }
-
-  getCoverages(): CoverageEntities {
-    const data = this.raw();
-    return new CoverageEntities(data?.coverages ?? [], data);
-  }
-
-  getPrimaryParty(): PartyEntity | undefined {
-    return this.getParties()
-      .toArray()
-      .find((party) => party.isPrimary());
-  }
-
-  getTotalVehicleValue(): number {
-    return this.getParties()
-      .toArray()
-      .reduce((total, party) => total + party.getTotalVehicleValue(), 0);
-  }
-
-  isActive(): boolean {
-    return this.getStatus() === "active";
-  }
-
-  hasHighRiskElements(): boolean {
-    return this.getParties()
-      .toArray()
-      .some((party) => party.hasHighRiskDrivers());
-  }
-
-  getAgent(): string | undefined {
-    return this.raw()?.agent;
-  }
-
-  getDiscounts(): number {
-    return this.raw()?.discounts ?? 0;
-  }
-
-  getEffectiveDate(): string | undefined {
-    return this.raw()?.effectiveDate;
-  }
-}
-
-// Entities Classes
-class ViolationEntities extends Entities<
-  ViolationData,
+import {
+  TestEntity,
+  TestCollection,
+  Vehicle,
   ViolationEntity,
-  DriverData
-> {
-  protected createEntity(data?: ViolationData): ViolationEntity {
-    return new ViolationEntity(data, this.parent);
-  }
-
-  getRecent(): ViolationEntities {
-    const recentData = this.toArray()
-      .filter((violation) => violation.isRecent())
-      .map((violation) => violation.raw())
-      .filter((data): data is ViolationData => data != null);
-    return new ViolationEntities(recentData, this.parent);
-  }
-
-  getMajorViolations(): ViolationEntities {
-    const majorData = this.toArray()
-      .filter((violation) => violation.isMajor())
-      .map((violation) => violation.raw())
-      .filter((data): data is ViolationData => data != null);
-    return new ViolationEntities(majorData, this.parent);
-  }
-
-  getTotalPoints(): number {
-    return this.toArray().reduce(
-      (total, violation) => total + violation.getPoints(),
-      0
-    );
-  }
-
-  getTotalFines(): number {
-    return this.toArray().reduce(
-      (total, violation) => total + violation.getFine(),
-      0
-    );
-  }
-}
-
-class VehicleEntities extends Entities<VehicleData, VehicleEntity, PartyData> {
-  protected createEntity(data?: VehicleData): VehicleEntity {
-    return new VehicleEntity(data, this.parent);
-  }
-
-  getClassicVehicles(): VehicleEntities {
-    const classicData = this.toArray()
-      .filter((vehicle) => vehicle.isClassic())
-      .map((vehicle) => vehicle.raw())
-      .filter((data): data is VehicleData => data != null);
-    return new VehicleEntities(classicData, this.parent);
-  }
-
-  getTotalValue(): number {
-    return this.toArray().reduce(
-      (total, vehicle) => total + vehicle.getValue(),
-      0
-    );
-  }
-
-  getEcoFriendlyVehicles(): VehicleEntities {
-    const ecoData = this.toArray()
-      .filter((vehicle) => vehicle.isEcoFriendly())
-      .map((vehicle) => vehicle.raw())
-      .filter((data): data is VehicleData => data != null);
-    return new VehicleEntities(ecoData, this.parent);
-  }
-
-  getHighMileageVehicles(): VehicleEntities {
-    const highMileageData = this.toArray()
-      .filter((vehicle) => vehicle.isHighMileage())
-      .map((vehicle) => vehicle.raw())
-      .filter((data): data is VehicleData => data != null);
-    return new VehicleEntities(highMileageData, this.parent);
-  }
-}
-
-class DriverEntities extends Entities<DriverData, DriverEntity, PartyData> {
-  protected createEntity(data?: DriverData): DriverEntity {
-    return new DriverEntity(data, this.parent);
-  }
-
-  getHighRiskDrivers(): DriverEntities {
-    const highRiskData = this.toArray()
-      .filter((driver) => driver.isHighRisk())
-      .map((driver) => driver.raw())
-      .filter((data): data is DriverData => data != null);
-    return new DriverEntities(highRiskData, this.parent);
-  }
-
-  getAverageAge(): number {
-    const drivers = this.toArray();
-    if (drivers.length === 0) return 0;
-    const totalAge = drivers.reduce((sum, driver) => sum + driver.getAge(), 0);
-    return totalAge / drivers.length;
-  }
-
-  getExperiencedDrivers(): DriverEntities {
-    const experiencedData = this.toArray()
-      .filter((driver) => driver.isExperienced())
-      .map((driver) => driver.raw())
-      .filter((data): data is DriverData => data != null);
-    return new DriverEntities(experiencedData, this.parent);
-  }
-
-  getEducatedDrivers(): DriverEntities {
-    const educatedData = this.toArray()
-      .filter((driver) => driver.hasEducation())
-      .map((driver) => driver.raw())
-      .filter((data): data is DriverData => data != null);
-    return new DriverEntities(educatedData, this.parent);
-  }
-}
-
-class PartyEntities extends Entities<PartyData, PartyEntity, QuoteData> {
-  protected createEntity(data?: PartyData): PartyEntity {
-    return new PartyEntity(data, this.parent);
-  }
-
-  getPrimaryParties(): PartyEntities {
-    const primaryData = this.toArray()
-      .filter((party) => party.isPrimary())
-      .map((party) => party.raw())
-      .filter((data): data is PartyData => data != null);
-    return new PartyEntities(primaryData, this.parent);
-  }
-
-  getPartiesWithHighRisk(): PartyEntities {
-    const highRiskData = this.toArray()
-      .filter((party) => party.hasHighRiskDrivers())
-      .map((party) => party.raw())
-      .filter((data): data is PartyData => data != null);
-    return new PartyEntities(highRiskData, this.parent);
-  }
-
-  getTotalVehicleValue(): number {
-    return this.toArray().reduce(
-      (total, party) => total + party.getTotalVehicleValue(),
-      0
-    );
-  }
-}
-
-class CoverageEntities extends Entities<
-  CoverageData,
-  CoverageEntity,
-  QuoteData
-> {
-  protected createEntity(data?: CoverageData): CoverageEntity {
-    return new CoverageEntity(data, this.parent);
-  }
-
-  getRequiredCoverages(): CoverageEntities {
-    const requiredData = this.toArray()
-      .filter((coverage) => coverage.isRequired())
-      .map((coverage) => coverage.raw())
-      .filter((data): data is CoverageData => data != null);
-    return new CoverageEntities(requiredData, this.parent);
-  }
-
-  getTotalPremium(): number {
-    return this.toArray().reduce(
-      (total, coverage) => total + coverage.getPremium(),
-      0
-    );
-  }
-
-  getCoverageByType(type: string): CoverageEntity | undefined {
-    return this.toArray().find((coverage) => coverage.getType() === type);
-  }
-}
-
-class QuoteEntities extends Entities<QuoteData, QuoteEntity, BusinessEntity> {
-  protected createEntity(data?: QuoteData): QuoteEntity {
-    return new QuoteEntity(data, this.parent);
-  }
-
-  getActiveQuotes(): QuoteEntities {
-    const activeData = this.toArray()
-      .filter((quote) => quote.isActive())
-      .map((quote) => quote.raw())
-      .filter((data): data is QuoteData => data != null);
-    return new QuoteEntities(activeData);
-  }
-
-  getHighRiskQuotes(): QuoteEntities {
-    const highRiskData = this.toArray()
-      .filter((quote) => quote.hasHighRiskElements())
-      .map((quote) => quote.raw())
-      .filter((data): data is QuoteData => data != null);
-    return new QuoteEntities(highRiskData);
-  }
-
-  getTotalPremium(): number {
-    return this.toArray().reduce(
-      (total, quote) => total + quote.getPremium(),
-      0
-    );
-  }
-}
-
-// Test Data Creation Functions
-function createEntityTestData() {
-  const violations = [
-    partial<ViolationData>({
-      _key: { id: "V1" },
-      type: "speeding",
-      date: "2023-06-15",
-      points: 3,
-      fine: 150,
-      description: "Going 20mph over speed limit",
-      location: "Highway 101",
-    }),
-    partial<ViolationData>({
-      _key: { id: "V2" },
-      type: "reckless_driving",
-      date: "2021-03-10",
-      points: 6,
-      fine: 500,
-      description: "Dangerous lane changing",
-    }),
-  ];
-
-  const vehicles = [
-    partial<VehicleData>({
-      _key: { id: "V1" },
-      make: "Honda",
-      model: "Civic",
-      year: 2021,
-      value: 25000,
-      vin: "1HGBH41JXMN109186",
-      color: "Blue",
-      mileage: 45000,
-      fuelType: "hybrid",
-    }),
-    partial<VehicleData>({
-      _key: { id: "V2" },
-      make: "BMW",
-      model: "3 Series",
-      year: 1995,
-      value: 15000,
-      vin: "WBAVA37553NM36040",
-      color: "Black",
-      mileage: 150000,
-      fuelType: "gas",
-    }),
-  ];
-
-  const drivers = [
-    partial<DriverData>({
-      _key: { id: "D1" },
-      firstName: "John",
-      lastName: "Doe",
-      dateOfBirth: "1985-03-15",
-      licenseNumber: "DL123456789",
-      licenseState: "CA",
-      violations,
-      experience: 15,
-      education: "college",
-    }),
-    partial<DriverData>({
-      _key: { id: "D2" },
-      firstName: "Jane",
-      lastName: "Smith",
-      dateOfBirth: "2001-08-22",
-      licenseNumber: "DL987654321",
-      licenseState: "CA",
-      experience: 3,
-      education: "high_school",
-    }),
-  ];
-
-  const parties = [
-    partial<PartyData>({
-      _key: { id: "P1" },
-      name: "John Doe",
-      type: "primary",
-      vehicles,
-      drivers,
-      address: "123 Main St, San Francisco, CA 94102",
-      phone: "(555) 123-4567",
-      email: "john.doe@email.com",
-    }),
-    partial<PartyData>({
-      _key: { id: "P2" },
-      name: "Additional Party",
-      type: "additional",
-      address: "456 Oak Ave, San Francisco, CA 94103",
-      phone: "(555) 987-6543",
-    }),
-  ];
-
-  const coverages = [
-    partial<CoverageData>({
-      _key: { id: "C1" },
-      type: "liability",
-      limit: 100000,
-      deductible: 500,
-      premium: 600,
-      description: "Bodily injury and property damage liability",
-      isRequired: true,
-    }),
-    partial<CoverageData>({
-      _key: { id: "C2" },
-      type: "comprehensive",
-      limit: 50000,
-      deductible: 250,
-      premium: 400,
-      description: "Coverage for theft, vandalism, and natural disasters",
-      isRequired: false,
-    }),
-  ];
-
-  const quotes = [
-    partial<QuoteData>({
-      _key: { id: "Q1" },
-      quoteNumber: "QT-2024-001",
-      status: "active",
-      premium: 1200,
-      parties,
-      coverages,
-      effectiveDate: "2024-01-01",
-      expirationDate: "2024-12-31",
-      agent: "Alice Johnson",
-      discounts: 100,
-    }),
-    partial<QuoteData>({
-      _key: { id: "Q2" },
-      quoteNumber: "QT-2024-002",
-      status: "draft",
-      premium: 800,
-      parties: [parties[1]],
-      coverages: [coverages[0]],
-      effectiveDate: "2024-02-01",
-      agent: "Bob Wilson",
-    }),
-  ];
-
-  return { quotes, parties, vehicles, drivers, violations, coverages };
-}
+  Driver,
+  Party,
+  Coverage,
+  Quote,
+  Violations,
+  Vehicles,
+  Drivers,
+  Parties,
+  Coverages,
+  Quotes,
+  type TestData,
+  type QuoteData,
+  type VehicleData,
+} from "./entities";
+import { createEntityTestData } from "./testData";
+import { Collection } from "../model/Collection";
+import type { BusinessEntity } from "../model/types";
 
 describe("Entities", () => {
   describe("Constructor", () => {
     it("should create empty Entities", () => {
-      // Arrange & Act
-      const Entities = new TestEntities();
+      // Arrange
+      // (No setup needed for empty constructor)
+
+      // Act
+      const entities = new TestCollection();
 
       // Assert
-      expect(Entities.length).toBe(0);
+      expect(entities.length).toBe(0);
     });
 
     it("should create Entities with initial items", () => {
@@ -673,10 +46,10 @@ describe("Entities", () => {
       ];
 
       // Act
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
       // Assert
-      expect(Entities.length).toBe(2);
+      expect(entities.length).toBe(2);
     });
   });
 
@@ -684,10 +57,10 @@ describe("Entities", () => {
     it("should return entity at valid index", () => {
       // Arrange
       const item = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
-      const Entities = new TestEntities([item]);
+      const entities = new TestCollection([item]);
 
       // Act
-      const result = Entities.at(0);
+      const result = entities.at(0);
 
       // Assert
       expect(result).toBeInstanceOf(TestEntity);
@@ -696,11 +69,11 @@ describe("Entities", () => {
 
     it("should return entity with undefined data for invalid index", () => {
       // Arrange
-      const Entities = new TestEntities();
+      const entities = new TestCollection();
 
       // Act
-      const result1 = Entities.at(0);
-      const result2 = Entities.at(-1);
+      const result1 = entities.at(0);
+      const result2 = entities.at(-1);
 
       // Assert
       expect(result1).toBeInstanceOf(TestEntity);
@@ -711,35 +84,31 @@ describe("Entities", () => {
 
     it("should return correct length", () => {
       // Arrange
-      const Entities = new TestEntities();
+      const emptyEntities = new TestCollection();
+      const item1 = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
+      const item2 = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
 
-      // Act & Assert - empty Entities
-      expect(Entities.length).toBe(0);
+      // Act
+      const entitiesAfterFirst = emptyEntities.push(item1);
+      const entitiesAfterSecond = entitiesAfterFirst.push(item2);
 
-      // Act & Assert - after first push
-      const Entities1 = Entities.push(
-        partial<TestData>({ _key: { id: "1" }, name: "Item 1" })
-      );
-      expect(Entities1.length).toBe(1);
-
-      // Act & Assert - after second push
-      const Entities2 = Entities1.push(
-        partial<TestData>({ _key: { id: "2" }, name: "Item 2" })
-      );
-      expect(Entities2.length).toBe(2);
+      // Assert
+      expect(emptyEntities.length).toBe(0);
+      expect(entitiesAfterFirst.length).toBe(1);
+      expect(entitiesAfterSecond.length).toBe(2);
     });
   });
 
   describe("Iterator", () => {
     it("should iterate over empty Entities", () => {
       // Arrange
-      const Entities = new TestEntities();
+      const entities = new TestCollection();
 
       // Act
-      const entities = Array.from(Entities);
+      const result = Array.from(entities);
 
       // Assert
-      expect(entities).toEqual([]);
+      expect(result).toEqual([]);
     });
 
     it("should iterate over entities using for...of", () => {
@@ -749,11 +118,11 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
         partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
       ];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
       // Act
       const result = [];
-      for (const entity of Entities) {
+      for (const entity of entities) {
         result.push(entity);
       }
 
@@ -773,10 +142,10 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
       // Act
-      const result = Array.from(Entities);
+      const result = Array.from(entities);
 
       // Assert
       expect(result).toHaveLength(2);
@@ -792,10 +161,10 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
       // Act
-      const result = [...Entities];
+      const result = [...entities];
 
       // Assert
       expect(result).toHaveLength(2);
@@ -806,13 +175,15 @@ describe("Entities", () => {
     });
 
     it("should work with manual iterator", () => {
+      // Arrange
       const items = [
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const iterator = Entities[Symbol.iterator]();
+      const entities = new TestCollection(items);
+      const iterator = entities[Symbol.iterator]();
 
+      // Act & Assert
       let result = iterator.next();
       expect(result.done).toBe(false);
       expect(result.value).toBeInstanceOf(TestEntity);
@@ -831,25 +202,33 @@ describe("Entities", () => {
 
   describe("Mutation Operations", () => {
     it("should return new Entities with added item", () => {
-      const Entities = new TestEntities();
+      // Arrange
+      const entities = new TestCollection();
       const item = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
-      const newEntities = Entities.push(item);
 
-      expect(Entities.length).toBe(0);
+      // Act
+      const newEntities = entities.push(item);
+
+      // Assert
+      expect(entities.length).toBe(0);
       expect(newEntities.length).toBe(1);
       expect(newEntities.at(0)).toBeInstanceOf(TestEntity);
       expect(newEntities.at(0).id()).toBe("1");
-      expect(newEntities).not.toBe(Entities);
+      expect(newEntities).not.toBe(entities);
     });
 
     it("should support fluent chaining with new instances", () => {
-      const Entities = new TestEntities();
+      // Arrange
+      const entities = new TestCollection();
       const item1 = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
       const item2 = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
-      const result = Entities.push(item1).push(item2);
 
-      expect(result).not.toBe(Entities);
-      expect(Entities.length).toBe(0);
+      // Act
+      const result = entities.push(item1).push(item2);
+
+      // Assert
+      expect(result).not.toBe(entities);
+      expect(entities.length).toBe(0);
       expect(result.length).toBe(2);
       expect(result.at(0)).toBeInstanceOf(TestEntity);
       expect(result.at(0).id()).toBe("1");
@@ -858,16 +237,19 @@ describe("Entities", () => {
     });
 
     it("should maintain immutability when pushing multiple items", () => {
-      const Entities = new TestEntities();
+      // Arrange
+      const entities = new TestCollection();
       const item1 = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
       const item2 = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
       const item3 = partial<TestData>({ _key: { id: "3" }, name: "Item 3" });
 
-      const step1 = Entities.push(item1);
+      // Act
+      const step1 = entities.push(item1);
       const step2 = step1.push(item2);
       const step3 = step2.push(item3);
 
-      expect(Entities.length).toBe(0);
+      // Assert
+      expect(entities.length).toBe(0);
       expect(step1.length).toBe(1);
       expect(step2.length).toBe(2);
       expect(step3.length).toBe(3);
@@ -883,9 +265,9 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
       ];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
       const newItem = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
-      const result = Entities.insertAt(1, newItem);
+      const result = entities.insertAt(1, newItem);
 
       expect(result.length).toBe(3);
       expect(result.at(0).id()).toBe("1");
@@ -895,9 +277,9 @@ describe("Entities", () => {
 
     it("should insert at beginning when index is 0", () => {
       const items = [partial<TestData>({ _key: { id: "2" }, name: "Item 2" })];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
       const newItem = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
-      const result = Entities.insertAt(0, newItem);
+      const result = entities.insertAt(0, newItem);
 
       expect(result.length).toBe(2);
       expect(result.at(0).id()).toBe("1");
@@ -906,9 +288,9 @@ describe("Entities", () => {
 
     it("should insert at end when index equals length", () => {
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
       const newItem = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
-      const result = Entities.insertAt(1, newItem);
+      const result = entities.insertAt(1, newItem);
 
       expect(result.length).toBe(2);
       expect(result.at(0).id()).toBe("1");
@@ -917,9 +299,9 @@ describe("Entities", () => {
 
     it("should clamp negative index to 0", () => {
       const items = [partial<TestData>({ _key: { id: "2" }, name: "Item 2" })];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
       const newItem = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
-      const result = Entities.insertAt(-5, newItem);
+      const result = entities.insertAt(-5, newItem);
 
       expect(result.length).toBe(2);
       expect(result.at(0).id()).toBe("1");
@@ -928,9 +310,9 @@ describe("Entities", () => {
 
     it("should clamp large index to length", () => {
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
       const newItem = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
-      const result = Entities.insertAt(999, newItem);
+      const result = entities.insertAt(999, newItem);
 
       expect(result.length).toBe(2);
       expect(result.at(0).id()).toBe("1");
@@ -938,9 +320,9 @@ describe("Entities", () => {
     });
 
     it("should work on empty Entities", () => {
-      const Entities = new TestEntities();
+      const entities = new TestCollection();
       const newItem = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
-      const result = Entities.insertAt(0, newItem);
+      const result = entities.insertAt(0, newItem);
 
       expect(result.length).toBe(1);
       expect(result.at(0).id()).toBe("1");
@@ -952,8 +334,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
         partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.removeAt(1);
+      const entities = new TestCollection(items);
+      const result = entities.removeAt(1);
 
       expect(result.length).toBe(2);
       expect(result.at(0).id()).toBe("1");
@@ -965,8 +347,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.removeAt(0);
+      const entities = new TestCollection(items);
+      const result = entities.removeAt(0);
 
       expect(result.length).toBe(1);
       expect(result.at(0).id()).toBe("2");
@@ -977,8 +359,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.removeAt(1);
+      const entities = new TestCollection(items);
+      const result = entities.removeAt(1);
 
       expect(result.length).toBe(1);
       expect(result.at(0).id()).toBe("1");
@@ -989,8 +371,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.removeAt(-1);
+      const entities = new TestCollection(items);
+      const result = entities.removeAt(-1);
 
       expect(result.length).toBe(2);
       expect(result.at(0).id()).toBe("1");
@@ -999,8 +381,8 @@ describe("Entities", () => {
 
     it("should handle index beyond bounds in remove", () => {
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const Entities = new TestEntities(items);
-      const result = Entities.removeAt(999);
+      const entities = new TestCollection(items);
+      const result = entities.removeAt(999);
 
       expect(result.length).toBe(1);
       expect(result.at(0).id()).toBe("1");
@@ -1008,15 +390,15 @@ describe("Entities", () => {
 
     it("should work on single item Entities", () => {
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const Entities = new TestEntities(items);
-      const result = Entities.removeAt(0);
+      const entities = new TestCollection(items);
+      const result = entities.removeAt(0);
 
       expect(result.length).toBe(0);
     });
 
     it("should work on empty Entities", () => {
-      const Entities = new TestEntities();
-      const result = Entities.removeAt(0);
+      const entities = new TestCollection();
+      const result = entities.removeAt(0);
 
       expect(result.length).toBe(0);
     });
@@ -1029,8 +411,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
         partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.filter(
+      const entities = new TestCollection(items);
+      const result = entities.filter(
         (entity, index) => entity.id() === "2" || index === 2
       );
 
@@ -1044,8 +426,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.filter(() => false);
+      const entities = new TestCollection(items);
+      const result = entities.filter(() => false);
 
       expect(result.length).toBe(0);
     });
@@ -1055,8 +437,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.filter(() => true);
+      const entities = new TestCollection(items);
+      const result = entities.filter(() => true);
 
       expect(result.length).toBe(2);
       expect(result.at(0).id()).toBe("1");
@@ -1064,8 +446,8 @@ describe("Entities", () => {
     });
 
     it("should work on empty Entities", () => {
-      const Entities = new TestEntities();
-      const result = Entities.filter(() => true);
+      const entities = new TestCollection();
+      const result = entities.filter(() => true);
 
       expect(result.length).toBe(0);
     });
@@ -1076,10 +458,10 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
         partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
       ];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
       const indices: number[] = [];
 
-      Entities.filter((_, index) => {
+      entities.filter((_, index) => {
         indices.push(index);
         return true;
       });
@@ -1092,8 +474,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.map((entity) => entity.id());
+      const entities = new TestCollection(items);
+      const result = entities.map((entity) => entity.id());
 
       expect(result).toEqual(["1", "2"]);
     });
@@ -1103,15 +485,15 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.map((entity, index) => `${entity.id()}-${index}`);
+      const entities = new TestCollection(items);
+      const result = entities.map((entity, index) => `${entity.id()}-${index}`);
 
       expect(result).toEqual(["1-0", "2-1"]);
     });
 
     it("should work on empty Entities", () => {
-      const Entities = new TestEntities();
-      const result = Entities.map((entity) => entity.id());
+      const entities = new TestCollection();
+      const result = entities.map((entity) => entity.id());
 
       expect(result).toEqual([]);
     });
@@ -1121,8 +503,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.map((entity) => ({
+      const entities = new TestCollection(items);
+      const result = entities.map((entity) => ({
         id: entity.id(),
         hasData: entity.raw() !== undefined,
         name: entity.raw()?.name,
@@ -1141,8 +523,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.toArray();
+      const entities = new TestCollection(items);
+      const result = entities.toArray();
 
       expect(result).toHaveLength(2);
       expect(result[0]).toBeInstanceOf(TestEntity);
@@ -1152,17 +534,17 @@ describe("Entities", () => {
     });
 
     it("should return empty array for empty Entities", () => {
-      const Entities = new TestEntities();
-      const result = Entities.toArray();
+      const entities = new TestCollection();
+      const result = entities.toArray();
 
       expect(result).toEqual([]);
     });
 
     it("should return new array instance", () => {
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const Entities = new TestEntities(items);
-      const result1 = Entities.toArray();
-      const result2 = Entities.toArray();
+      const entities = new TestCollection(items);
+      const result1 = entities.toArray();
+      const result2 = entities.toArray();
 
       expect(result1).not.toBe(result2);
       expect(result1).toEqual(result2);
@@ -1173,8 +555,8 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
-      const result = Entities.toDataArray();
+      const entities = new TestCollection(items);
+      const result = entities.toDataArray();
 
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(items[0]);
@@ -1183,32 +565,32 @@ describe("Entities", () => {
 
     it("should return immutable reference to internal data", () => {
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const Entities = new TestEntities(items);
-      const result = Entities.toDataArray();
+      const entities = new TestCollection(items);
+      const result = entities.toDataArray();
 
-      expect(result).toBe(Entities.toDataArray());
+      expect(result).toBe(entities.toDataArray());
     });
   });
 
   describe("Factory Method", () => {
     it("should create new instance with same type", () => {
-      const Entities = new TestEntities();
+      const entities = new TestCollection();
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const result = Entities.create(items);
+      const result = entities.create(items);
 
-      expect(result).toBeInstanceOf(TestEntities);
-      expect(result).not.toBe(Entities);
+      expect(result).toBeInstanceOf(TestCollection);
+      expect(result).not.toBe(Collection);
       expect(result.length).toBe(1);
       expect(result.at(0).id()).toBe("1");
     });
 
     it("should preserve parent reference", () => {
       const parent = { _key: { rootId: "parent", revisionNo: 1 } };
-      const Entities = new TestEntities([], parent);
+      const entities = new TestCollection([], parent);
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const result = Entities.create(items);
+      const result = entities.create(items);
 
-      expect(result).toBeInstanceOf(TestEntities);
+      expect(result).toBeInstanceOf(TestCollection);
       expect(result.length).toBe(1);
     });
   });
@@ -1220,17 +602,17 @@ describe("Entities", () => {
         any(undefined),
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
       ];
-      const Entities = new TestEntities(items.filter(Boolean) as TestData[]);
+      const entities = new TestCollection(items.filter(Boolean) as TestData[]);
 
-      expect(Entities.length).toBe(1);
-      expect(Entities.at(0).id()).toBe("1");
+      expect(entities.length).toBe(1);
+      expect(entities.at(0).id()).toBe("1");
     });
 
     it("should handle Entitiess with mixed valid/invalid data", () => {
-      const Entities = new TestEntities([
+      const entities = new TestCollection([
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
       ]);
-      const result = Entities.push(any({ invalid: "data" }));
+      const result = entities.push(any({ invalid: "data" }));
 
       expect(result.length).toBe(2);
       expect(result.at(0).id()).toBe("1");
@@ -1242,14 +624,14 @@ describe("Entities", () => {
       const items = Array.from({ length: 10000 }, (_, i) =>
         partial<TestData>({ _key: { id: i.toString() }, name: `Item ${i}` })
       );
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
-      expect(Entities.length).toBe(10000);
-      expect(Entities.at(0).id()).toBe("0");
-      expect(Entities.at(9999).id()).toBe("9999");
+      expect(entities.length).toBe(10000);
+      expect(entities.at(0).id()).toBe("0");
+      expect(entities.at(9999).id()).toBe("9999");
 
       let count = 0;
-      for (const _ of Entities) {
+      for (const _ of entities) {
         count++;
         if (count > 100) break;
       }
@@ -1258,15 +640,15 @@ describe("Entities", () => {
 
     it("should handle concurrent modifications safely", () => {
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
       const results = Array.from({ length: 100 }, (_, i) =>
-        Entities.push(
+        entities.push(
           partial<TestData>({ _key: { id: i.toString() }, name: `Item ${i}` })
         )
       );
 
-      expect(Entities.length).toBe(1);
+      expect(entities.length).toBe(1);
       expect(results[0].length).toBe(2);
       expect(results[99].length).toBe(2);
     });
@@ -1274,10 +656,10 @@ describe("Entities", () => {
     it("should handle circular reference protection", () => {
       const item1 = partial<TestData>({ _key: { id: "1" }, name: "Item 1" });
       const item2 = partial<TestData>({ _key: { id: "2" }, name: "Item 2" });
-      const Entities = new TestEntities([item1, item2]);
+      const entities = new TestCollection([item1, item2]);
 
-      const entity1 = Entities.at(0);
-      const entity2 = Entities.at(1);
+      const entity1 = entities.at(0);
+      const entity2 = entities.at(1);
 
       expect(entity1.raw()).toBe(item1);
       expect(entity2.raw()).toBe(item2);
@@ -1286,11 +668,11 @@ describe("Entities", () => {
 
     it("should handle memory efficiency with repeated access", () => {
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
-      const entities = Array.from({ length: 1000 }, () => Entities.at(0));
+      const newEntitiea = Array.from({ length: 1000 }, () => entities.at(0));
 
-      entities.forEach((entity) => {
+      newEntitiea.forEach((entity) => {
         expect(entity).toBeInstanceOf(TestEntity);
         expect(entity.id()).toBe("1");
       });
@@ -1301,11 +683,11 @@ describe("Entities", () => {
         _key: { id: "1" },
         name: "Original",
       });
-      const Entities = new TestEntities([originalData]);
+      const entities = new TestCollection([originalData]);
 
-      const filtered = Entities.filter(() => true);
-      const mapped = Entities.map((entity) => entity.raw());
-      const arrayForm = Entities.toArray();
+      const filtered = entities.filter(() => true);
+      const mapped = entities.map((entity) => entity.raw());
+      const arrayForm = entities.toArray();
 
       expect(originalData.name).toBe("Original");
       expect(filtered.at(0).raw()?.name).toBe("Original");
@@ -1318,13 +700,13 @@ describe("Entities", () => {
         partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
       ];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
-      const result1 = Entities.insertAt(
+      const result1 = entities.insertAt(
         0.7,
         partial<TestData>({ _key: { id: "0" }, name: "Item 0" })
       );
-      const result2 = Entities.removeAt(1.9);
+      const result2 = entities.removeAt(1.9);
 
       expect(result1.at(0).id()).toBe("0");
       expect(result2.length).toBe(1);
@@ -1332,13 +714,13 @@ describe("Entities", () => {
 
     it("should handle Infinity and NaN indices", () => {
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
-      const infinityResult = Entities.insertAt(
+      const infinityResult = entities.insertAt(
         Infinity,
         partial<TestData>({ _key: { id: "2" }, name: "Item 2" })
       );
-      const nanResult = Entities.insertAt(
+      const nanResult = entities.insertAt(
         NaN,
         partial<TestData>({ _key: { id: "3" }, name: "Item 3" })
       );
@@ -1357,10 +739,10 @@ describe("Entities", () => {
         const items = Array.from({ length: size }, (_, i) =>
           partial<TestData>({ _key: { id: i.toString() }, name: `Item ${i}` })
         );
-        const Entities = new TestEntities(items);
+        const entities = new TestCollection(items);
 
         const start = performance.now();
-        Entities.push(
+        entities.push(
           partial<TestData>({ _key: { id: "new" }, name: "New Item" })
         );
         const end = performance.now();
@@ -1373,13 +755,13 @@ describe("Entities", () => {
     });
 
     it("should handle rapid successive operations efficiently", () => {
-      const Entities = new TestEntities();
+      const entities = new TestCollection();
       const items = Array.from({ length: 100 }, (_, i) =>
         partial<TestData>({ _key: { id: i.toString() }, name: `Item ${i}` })
       );
 
       const start = performance.now();
-      let result = Entities;
+      let result = entities;
 
       for (const item of items) {
         result = result.push(item);
@@ -1395,12 +777,12 @@ describe("Entities", () => {
       const items = Array.from({ length: 1000 }, (_, i) =>
         partial<TestData>({ _key: { id: i.toString() }, name: `Item ${i}` })
       );
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
       const start = performance.now();
 
       let count = 0;
-      for (const entity of Entities) {
+      for (const entity of entities) {
         count++;
         entity.id();
       }
@@ -1412,19 +794,165 @@ describe("Entities", () => {
     });
   });
 
+  describe("Functional Composition", () => {
+    it("should support pipe method for chaining operations", () => {
+      const items = [
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
+        partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
+      ];
+      const entities = new TestCollection(items);
+
+      const result = entities.pipe(
+        (collection) => collection.filter((entity) => entity.id() !== "2"),
+        (filtered) => filtered.map((entity) => entity.getName()),
+        (names) => names.join(", ")
+      );
+
+      expect(result).toBe("Item 1, Item 3");
+    });
+
+    it("should support single function pipe", () => {
+      const items = [
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
+      ];
+      const entities = new TestCollection(items);
+
+      const result = entities.pipe((collection) => collection.length);
+
+      expect(result).toBe(2);
+    });
+
+    it("should support multiple step pipe operations", () => {
+      const items = [
+        partial<TestData>({ _key: { id: "1" }, name: "Apple" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Banana" }),
+        partial<TestData>({ _key: { id: "3" }, name: "Cherry" }),
+        partial<TestData>({ _key: { id: "4" }, name: "Date" }),
+      ];
+      const entities = new TestCollection(items);
+
+      const result = entities.pipe(
+        (collection) =>
+          collection.filter((entity) => entity.getName().length > 4),
+        (filtered) => filtered.map((entity) => entity.getName().toUpperCase()),
+        (names) => names.sort(),
+        (sorted) => sorted.reverse(),
+        (final) => final.join(" | ")
+      );
+
+      expect(result).toBe("CHERRY | BANANA | APPLE");
+    });
+  });
+
+  describe("Advanced Pipe Functionality", () => {
+    it("should handle counting and formatting transformations", () => {
+      const items = [
+        partial<TestData>({ _key: { id: "1" }, name: "Item 1" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Item 2" }),
+        partial<TestData>({ _key: { id: "3" }, name: "Item 3" }),
+      ];
+      const entities = new TestCollection(items);
+
+      const result = entities.pipe(
+        (collection) => collection.length,
+        (n) => n * 2,
+        (n) => `Count: ${n}`
+      );
+
+      expect(result).toBe("Count: 6");
+    });
+
+    it("should work with complex data transformations", () => {
+      const items = [
+        partial<TestData>({ _key: { id: "1" }, name: "Alpha" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Beta" }),
+        partial<TestData>({ _key: { id: "3" }, name: "Gamma" }),
+        partial<TestData>({ _key: { id: "4" }, name: "Delta" }),
+      ];
+      const entities = new TestCollection(items);
+
+      const result = entities.pipe(
+        (collection) => collection.filter((entity) => entity.getName().length > 4),
+        (filtered) => filtered.map((entity) => entity.getName()),
+        (names) => names.join(", "),
+        (text) => text.toUpperCase()
+      );
+
+      expect(result).toBe("ALPHA, GAMMA, DELTA");
+    });
+
+    it("should handle greeting transformations", () => {
+      const items = [partial<TestData>({ _key: { id: "1" }, name: "Test" })];
+      const entities = new TestCollection(items);
+
+      const result = entities.pipe(
+        (collection) => collection.at(0).getName(),
+        (name) => `Hello, ${name}!`
+      );
+
+      expect(result).toBe("Hello, Test!");
+    });
+
+    it("should chain multiple string transformations", () => {
+      const items = [
+        partial<TestData>({ _key: { id: "1" }, name: "One" }),
+        partial<TestData>({ _key: { id: "2" }, name: "Two" }),
+        partial<TestData>({ _key: { id: "3" }, name: "Three" }),
+      ];
+      const entities = new TestCollection(items);
+
+      const result = entities.pipe(
+        (collection) => collection.map((entity) => entity.getName().toUpperCase()),
+        (names) => names.join(" - ")
+      );
+
+      expect(result).toBe("ONE - TWO - THREE");
+    });
+
+    it("should support very long pipe chains with 16 functions", () => {
+      const items = [
+        partial<TestData>({ _key: { id: "1" }, name: "data" }),
+      ];
+      const entities = new TestCollection(items);
+
+      const result = entities.pipe(
+        (collection) => collection.at(0),                    // T1: TestEntity
+        (entity) => entity.getName(),                        // T2: string
+        (name) => name.toUpperCase(),                        // T3: string
+        (upper) => upper.split(""),                          // T4: string[]
+        (chars) => chars.reverse(),                          // T5: string[]
+        (reversed) => reversed.join(""),                     // T6: string
+        (joined) => `[${joined}]`,                          // T7: string
+        (bracketed) => bracketed.length,                     // T8: number
+        (length) => length * 2,                             // T9: number
+        (doubled) => doubled.toString(),                     // T10: string
+        (str) => str.padStart(4, "0"),                      // T11: string
+        (padded) => padded.split(""),                       // T12: string[]
+        (chars) => chars.map(c => c === "0" ? "X" : c),     // T13: string[]
+        (mapped) => mapped.join("-"),                        // T14: string
+        (dashed) => dashed.toLowerCase(),                    // T15: string
+        (final) => `Result: ${final}`                       // T16: string
+      );
+
+      expect(result).toBe("Result: x-x-1-2");
+    });
+  });
+
   describe("Type Safety and Generics", () => {
     it("should maintain type safety through transformations", () => {
       const items = [partial<TestData>({ _key: { id: "1" }, name: "Item 1" })];
-      const Entities = new TestEntities(items);
+      const entities = new TestCollection(items);
 
-      const filtered: TestEntities = Entities.filter(() => true);
-      const mapped: string[] = Entities.map((entity) => entity.id() || "");
-      const entities: TestEntity[] = Entities.toArray();
-      const data: readonly TestData[] = Entities.toDataArray();
+      const filtered: TestCollection = entities.filter(() => true);
+      const mapped = entities.map((entity) => entity.id());
+      const newEntities = entities.toArray();
+      const data = entities.toDataArray();
 
-      expect(filtered).toBeInstanceOf(TestEntities);
+      expect(filtered).toBeInstanceOf(TestCollection);
       expect(Array.isArray(mapped)).toBe(true);
-      expect(Array.isArray(entities)).toBe(true);
+      expect(Array.isArray(newEntities)).toBe(true);
       expect(Array.isArray(data)).toBe(true);
     });
 
@@ -1435,7 +963,7 @@ describe("Entities", () => {
         }
       }
 
-      class ExtendedTestEntities extends Entities<
+      class ExtendedTestEntities extends Collection<
         TestData,
         ExtendedTestEntity,
         BusinessEntity
@@ -1457,12 +985,315 @@ describe("Entities", () => {
   });
 });
 
+describe("Entity Pipe and Compose Tests", () => {
+  const testData = createEntityTestData();
+
+  describe("Entity Pipe Functionality", () => {
+    it("should support pipe operations on individual entities", () => {
+      const quote = new Quote(testData.quotes[0]);
+
+      const result = quote.pipe(
+        (entity) => entity.getPrimaryParty(),
+        (party) => party?.getVehicles(),
+        (vehicles) => vehicles?.getTotalValue() ?? 0,
+        (value) => `Total: $${value.toLocaleString()}`
+      );
+
+      expect(result).toBe("Total: $40,000");
+    });
+
+    it("should support single function pipe on entities", () => {
+      const driver = new Driver(testData.drivers[0]);
+
+      const result = driver.pipe(
+        (entity) => entity.getFullName()
+      );
+
+      expect(result).toBe("John Doe");
+    });
+
+    it("should chain entity methods with pipe", () => {
+      const vehicle = new Vehicle(testData.vehicles[0]);
+
+      const result = vehicle.pipe(
+        (entity) => entity.getDisplayName(),
+        (name) => name.toUpperCase(),
+        (upperName) => `[${upperName}]`,
+        (formatted) => `Vehicle: ${formatted}`
+      );
+
+      expect(result).toBe("Vehicle: [2021 BLUE HONDA CIVIC]");
+    });
+
+    it("should work with complex entity transformations", () => {
+      const party = new Party(testData.parties[0]);
+
+      const result = party.pipe(
+        (entity) => entity.getDrivers(),
+        (drivers) => drivers.getHighRiskDrivers(),
+        (highRisk) => highRisk.length,
+        (count) => count > 0 ? "Has high risk drivers" : "No high risk drivers"
+      );
+
+      expect(result).toBe("Has high risk drivers");
+    });
+  });
+
+  describe("Advanced Entity Pipe Functionality", () => {
+    it("should support complex entity transformations", () => {
+      const quote = new Quote(testData.quotes[0]);
+
+      const result = quote.pipe(
+        (entity) => entity.getPremium(),
+        (value) => `Premium: $${value}`
+      );
+
+      expect(result).toBe("Premium: $1200");
+    });
+
+    it("should work with complex entity pipe chains", () => {
+      const coverage = new Coverage(testData.coverages[0]);
+
+      const result = coverage.pipe(
+        (entity) => entity.getType(),
+        (type) => type.charAt(0).toUpperCase() + type.slice(1),
+        (description) => `Coverage: ${description}`
+      );
+
+      expect(result).toBe("Coverage: Liability");
+    });
+
+    it("should handle entity calculations and formatting", () => {
+      const violation = new ViolationEntity(testData.violations[0]);
+
+      const result = violation.pipe(
+        (entity) => entity.getPoints(),
+        (points) => points * 10,
+        (multiplied) => `Points: ${multiplied}`
+      );
+
+      expect(result).toBe("Points: 30");
+    });
+
+    it("should work with entity relationships", () => {
+      const quote = new Quote(testData.quotes[0]);
+
+      const result = quote.pipe(
+        (entity) => entity.getPrimaryParty(),
+        (party) => party?.getVehicles(),
+        (vehicles) => vehicles?.getClassicVehicles().length ?? 0,
+        (count) => `Found ${count} classic vehicle(s)`
+      );
+
+      expect(result).toBe("Found 1 classic vehicle(s)");
+    });
+  });
+
+  describe("Entity and Collection Pipe Integration", () => {
+    it("should seamlessly transition between entities and collections", () => {
+      const quotes = new Quotes(testData.quotes);
+
+      // Start with collection, pipe to entity, then back to collection operations
+      const result = quotes.pipe(
+        (collection) => collection.getActiveQuotes(),
+        (activeQuotes) => activeQuotes.at(0),
+        (quote) => quote.pipe(
+          (entity) => entity.getPrimaryParty(),
+          (party) => party?.getDrivers(),
+          (drivers) => drivers?.map((driver) => driver.getFullName()),
+          (names) => names?.join(" & ") ?? "No drivers"
+        )
+      );
+
+      expect(result).toBe("John Doe & Jane Smith");
+    });
+
+    it("should combine entity and collection pipe operations", () => {
+      const drivers = new Drivers(testData.drivers);
+
+      const result = drivers.pipe(
+        (collection) => collection.getAverageAge(),
+        (avgAge) => avgAge.toFixed(1),
+        (riskInfo) => `Age ${riskInfo}`,
+        (summary) => `Driver Summary: ${summary}`
+      );
+
+      expect(result.startsWith("Driver Summary: Age")).toBe(true);
+    });
+  });
+});
+
+describe("Direct Entity and Collection Tests", () => {
+  const testData = createEntityTestData();
+
+  describe("ViolationEntity Functionality", () => {
+    it("should work with individual violation entities", () => {
+      const violation = new ViolationEntity(testData.violations[0]);
+
+      expect(violation.getPoints()).toBe(3);
+      expect(violation.isRecent()).toBe(true);
+      expect(violation.isMajor()).toBe(false);
+      expect(violation.getFine()).toBe(150);
+      expect(violation.getDescription()).toBe("Going 20mph over speed limit");
+
+      const majorViolation = new ViolationEntity(testData.violations[1]);
+      expect(majorViolation.isMajor()).toBe(true);
+      expect(majorViolation.getPoints()).toBe(6);
+    });
+  });
+
+  describe("Violations Collection Functionality", () => {
+    it("should work with violations collections", () => {
+      const violations = new Violations(testData.violations);
+
+      expect(violations.length).toBe(2);
+      expect(violations.getTotalPoints()).toBe(9);
+      expect(violations.getTotalFines()).toBe(650);
+
+      const recentViolations = violations.getRecent();
+      expect(recentViolations.length).toBe(1);
+      expect(recentViolations.at(0).getDescription()).toBe(
+        "Going 20mph over speed limit"
+      );
+
+      const majorViolations = violations.getMajorViolations();
+      expect(majorViolations.length).toBe(1);
+      expect(majorViolations.at(0).getPoints()).toBe(6);
+    });
+  });
+
+  describe("Party Entity Functionality", () => {
+    it("should work with individual party entities", () => {
+      const party = new Party(testData.parties[0]);
+
+      expect(party.getName()).toBe("John Doe");
+      expect(party.isPrimary()).toBe(true);
+      expect(party.getTotalVehicleValue()).toBe(40000);
+      expect(party.hasHighRiskDrivers()).toBe(true);
+      expect(party.getAddress()).toBe("123 Main St, San Francisco, CA 94102");
+
+      const contactInfo = party.getContactInfo();
+      expect(contactInfo.phone).toBe("(555) 123-4567");
+      expect(contactInfo.email).toBe("john.doe@email.com");
+
+      const vehicles = party.getVehicles();
+      expect(vehicles.length).toBe(2);
+
+      const drivers = party.getDrivers();
+      expect(drivers.length).toBe(2);
+    });
+  });
+
+  describe("Parties Collection Functionality", () => {
+    it("should work with parties collections", () => {
+      const parties = new Parties(testData.parties);
+
+      expect(parties.length).toBe(2);
+      expect(parties.getTotalVehicleValue()).toBe(40000);
+
+      const primaryParties = parties.getPrimaryParties();
+      expect(primaryParties.length).toBe(1);
+      expect(primaryParties.at(0).getName()).toBe("John Doe");
+
+      const partiesWithHighRisk = parties.getPartiesWithHighRisk();
+      expect(partiesWithHighRisk.length).toBe(1);
+      expect(partiesWithHighRisk.at(0).getName()).toBe("John Doe");
+    });
+  });
+
+  describe("Coverage Entity Functionality", () => {
+    it("should work with individual coverage entities", () => {
+      const coverage = new Coverage(testData.coverages[0]);
+
+      expect(coverage.getType()).toBe("liability");
+      expect(coverage.getPremium()).toBe(600);
+      expect(coverage.getLimit()).toBe(100000);
+      expect(coverage.getDeductible()).toBe(500);
+      expect(coverage.isRequired()).toBe(true);
+      expect(coverage.getDescription()).toBe(
+        "Bodily injury and property damage liability"
+      );
+
+      const optionalCoverage = new Coverage(testData.coverages[1]);
+      expect(optionalCoverage.isRequired()).toBe(false);
+      expect(optionalCoverage.getType()).toBe("comprehensive");
+    });
+  });
+
+  describe("Coverages Collection Functionality", () => {
+    it("should work with coverages collections", () => {
+      const coverages = new Coverages(testData.coverages);
+
+      expect(coverages.length).toBe(2);
+      expect(coverages.getTotalPremium()).toBe(1000);
+
+      const requiredCoverages = coverages.getRequiredCoverages();
+      expect(requiredCoverages.length).toBe(1);
+      expect(requiredCoverages.at(0).getType()).toBe("liability");
+
+      const liabilityCoverage = coverages.getCoverageByType("liability");
+      expect(liabilityCoverage?.getDescription()).toBe(
+        "Bodily injury and property damage liability"
+      );
+
+      const nonExistentCoverage = coverages.getCoverageByType("nonexistent");
+      expect(nonExistentCoverage).toBeUndefined();
+    });
+  });
+});
+
 describe("Entity and Entities Tests", () => {
   const testData = createEntityTestData();
 
+  describe("Pipe and Compose with Domain Entities", () => {
+    it("should work with domain-specific entities using pipe", () => {
+      const quotes = new Quotes(testData.quotes);
+
+      const result = quotes.pipe(
+        (collection) => collection.getActiveQuotes(),
+        (active) => active.at(0),
+        (quote) => quote.getPrimaryParty(),
+        (party) => party?.getVehicles(),
+        (vehicles) => vehicles?.getTotalValue() ?? 0,
+        (value) => `Total Vehicle Value: $${value.toLocaleString()}`
+      );
+
+      expect(result).toBe("Total Vehicle Value: $40,000");
+    });
+
+    it("should work with domain-specific entities using pipe", () => {
+      const quotes = new Quotes(testData.quotes);
+
+      const result = quotes.pipe(
+        (quotes) => quotes.getActiveQuotes(),
+        (quotes) => quotes.at(0),
+        (quote) => quote.getPrimaryParty(),
+        (party) => party?.getDrivers(),
+        (drivers) => drivers?.getHighRiskDrivers().length ?? 0,
+        (count) => `High Risk Drivers: ${count}`
+      );
+
+      expect(result).toBe("High Risk Drivers: 1");
+    });
+
+    it("should chain multiple collection operations with pipe", () => {
+      const quotes = new Quotes(testData.quotes);
+
+      const result = quotes.pipe(
+        (collection) => collection.at(0),
+        (quote) => quote.getParties().at(0).getDrivers(),
+        (drivers) => drivers.getHighRiskDrivers(),
+        (highRisk) => highRisk.map((driver) => driver.getFullName()),
+        (names) => names.join(", ")
+      );
+
+      expect(result).toBe("Jane Smith");
+    });
+  });
+
   describe("Entity Functionality", () => {
     it("should work with individual entities", () => {
-      const quote = new QuoteEntity(testData.quotes[0]);
+      const quote = new Quote(testData.quotes[0]);
 
       expect(quote.getQuoteNumber()).toBe("QT-2024-001");
       expect(quote.isActive()).toBe(true);
@@ -1475,20 +1306,20 @@ describe("Entity and Entities Tests", () => {
     });
 
     it("should handle driver risk assessment", () => {
-      const driver = new DriverEntity(testData.drivers[0]);
+      const driver = new Driver(testData.drivers[0]);
 
       expect(driver.getFullName()).toBe("John Doe");
       expect(driver.getAge()).toBeGreaterThan(30);
       expect(driver.getTotalPoints()).toBe(3);
       expect(driver.isHighRisk()).toBe(false);
 
-      const youngDriver = new DriverEntity(testData.drivers[1]);
+      const youngDriver = new Driver(testData.drivers[1]);
       expect(youngDriver.isHighRisk()).toBe(true);
     });
 
     it("should identify classic vehicles", () => {
-      const modernVehicle = new VehicleEntity(testData.vehicles[0]);
-      const classicVehicle = new VehicleEntity(testData.vehicles[1]);
+      const modernVehicle = new Vehicle(testData.vehicles[0]);
+      const classicVehicle = new Vehicle(testData.vehicles[1]);
 
       expect(modernVehicle.isClassic()).toBe(false);
       expect(classicVehicle.isClassic()).toBe(true);
@@ -1496,7 +1327,7 @@ describe("Entity and Entities Tests", () => {
     });
 
     it("should handle null/undefined data in entities", () => {
-      const quote = new QuoteEntity(
+      const quote = new Quote(
         any({
           _key: { id: "Q4" },
           quoteNumber: null,
@@ -1515,7 +1346,7 @@ describe("Entity and Entities Tests", () => {
 
   describe("IterableEntities Functionality", () => {
     it("should work with quote Entitiess", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
 
       expect(quotes.length).toBe(2);
       expect(quotes.getTotalPremium()).toBe(2000);
@@ -1529,7 +1360,7 @@ describe("Entity and Entities Tests", () => {
     });
 
     it("should work with vehicle Entitiess", () => {
-      const vehicles = new VehicleEntities(testData.vehicles);
+      const vehicles = new Vehicles(testData.vehicles);
 
       expect(vehicles.length).toBe(2);
       expect(vehicles.getTotalValue()).toBe(40000);
@@ -1542,7 +1373,7 @@ describe("Entity and Entities Tests", () => {
     });
 
     it("should work with driver Entitiess", () => {
-      const drivers = new DriverEntities(testData.drivers);
+      const drivers = new Drivers(testData.drivers);
 
       expect(drivers.length).toBe(2);
       expect(drivers.getAverageAge()).toBeGreaterThan(25);
@@ -1553,7 +1384,7 @@ describe("Entity and Entities Tests", () => {
     });
 
     it("should preserve immutability", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
       const originalLength = quotes.length;
 
       const newQuotes = quotes.push(partial({ _key: { id: "Q3" } }));
@@ -1564,7 +1395,7 @@ describe("Entity and Entities Tests", () => {
     });
 
     it("should handle index bounds safely", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
 
       const outOfBounds = quotes.at(999);
       expect(outOfBounds).toBeDefined();
@@ -1578,7 +1409,7 @@ describe("Entity and Entities Tests", () => {
 
   describe("Immer Integration with Entities and Entitiess", () => {
     it("should demonstrate complex state updates with Immer", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
       const originalQuote = quotes.at(0);
 
       const updatedQuoteData = produce(originalQuote.raw()!, (draft) => {
@@ -1611,7 +1442,7 @@ describe("Entity and Entities Tests", () => {
         }
       });
 
-      const updatedQuote = new QuoteEntities([updatedQuoteData]).at(0);
+      const updatedQuote = new Quotes([updatedQuoteData]).at(0);
 
       expect(originalQuote.getPremium()).toBe(1200);
       expect(originalQuote.getCoverages().length).toBe(2);
@@ -1626,7 +1457,7 @@ describe("Entity and Entities Tests", () => {
     });
 
     it("should handle Entities mutations with Immer", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
 
       const newQuoteData = partial<QuoteData>({
         _key: { id: "Q3" },
@@ -1654,7 +1485,7 @@ describe("Entity and Entities Tests", () => {
 
   describe("Performance and Optimization", () => {
     it("should demonstrate entity caching performance", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
 
       const start = performance.now();
 
@@ -1667,8 +1498,8 @@ describe("Entity and Entities Tests", () => {
 
       const start2 = performance.now();
       for (let i = 0; i < 100; i++) {
-        new QuoteEntity(testData.quotes[0]);
-        new QuoteEntity(testData.quotes[1]);
+        new Quote(testData.quotes[0]);
+        new Quote(testData.quotes[1]);
       }
       const uncached = performance.now() - start2;
 
@@ -1678,7 +1509,7 @@ describe("Entity and Entities Tests", () => {
 
   describe("Advanced Entities Patterns", () => {
     it("should support Entities chaining and filtering", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
 
       const result = quotes
         .filter((quote) => quote.getPremium() > 1000)
@@ -1697,7 +1528,7 @@ describe("Entity and Entities Tests", () => {
     });
 
     it("should handle nested entity relationships", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
       const firstQuote = quotes.at(0);
 
       const primaryParty = firstQuote.getPrimaryParty();
@@ -1725,7 +1556,7 @@ describe("Core Integration: Entity + Entities + Immer", () => {
 
   describe("All Entitiess Integration", () => {
     it("should demonstrate usage of all Entities types", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
       const activeQuotes = quotes.getActiveQuotes();
       expect(activeQuotes.length).toBe(1);
 
@@ -1734,6 +1565,10 @@ describe("Core Integration: Entity + Entities + Immer", () => {
       const parties = quote.getParties();
       const primaryParties = parties.getPrimaryParties();
       expect(primaryParties.length).toBe(1);
+
+      const partiesWithHighRisk = parties.getPartiesWithHighRisk();
+      expect(partiesWithHighRisk.length).toBe(1);
+      expect(partiesWithHighRisk.at(0).getName()).toBe("John Doe");
 
       const primaryParty = primaryParties.at(0);
 
@@ -1748,6 +1583,12 @@ describe("Core Integration: Entity + Entities + Immer", () => {
       const classicVehicles = vehicles.getClassicVehicles();
       expect(classicVehicles.length).toBe(1);
       expect(classicVehicles.at(0).isHighMileage()).toBe(true);
+
+      const highMileageVehicles = vehicles.getHighMileageVehicles();
+      expect(highMileageVehicles.length).toBe(1);
+      expect(highMileageVehicles.at(0).getDisplayName()).toBe(
+        "1995 Black BMW 3 Series"
+      );
 
       const drivers = primaryParty.getDrivers();
       expect(drivers.length).toBe(2);
@@ -1788,7 +1629,7 @@ describe("Core Integration: Entity + Entities + Immer", () => {
     });
 
     it("should demonstrate optional attributes usage", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
       const quote = quotes.at(0);
 
       expect(quote.getAgent()).toBe("Alice Johnson");
@@ -1833,7 +1674,8 @@ describe("Core Integration: Entity + Entities + Immer", () => {
         premium: 500,
       });
 
-      const quote = new QuoteEntity(minimalQuote);
+      const quote = new Quote(minimalQuote);
+
       expect(quote.getQuoteNumber()).toBe("QT-MINIMAL");
       expect(quote.getPremium()).toBe(500);
       expect(quote.getAgent()).toBeUndefined();
@@ -1848,7 +1690,7 @@ describe("Core Integration: Entity + Entities + Immer", () => {
         value: 30000,
       });
 
-      const vehicle = new VehicleEntity(minimalVehicle);
+      const vehicle = new Vehicle(minimalVehicle);
       expect(vehicle.getDisplayName()).toBe("2023 Toyota Prius");
       expect(vehicle.getVin()).toBeUndefined();
       expect(vehicle.isEcoFriendly()).toBe(false);
@@ -1858,7 +1700,7 @@ describe("Core Integration: Entity + Entities + Immer", () => {
 
   describe("Core Integration Patterns", () => {
     it("should integrate entities and Entitiess", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
 
       const activeQuotes = quotes.getActiveQuotes();
       const firstQuote = activeQuotes.at(0);
@@ -1866,21 +1708,20 @@ describe("Core Integration: Entity + Entities + Immer", () => {
       expect(firstQuote.getQuoteNumber()).toBe("QT-2024-001");
       expect(firstQuote.isActive()).toBe(true);
 
-      const primaryPartyName =
-        firstQuote.getPrimaryParty()?.getName() || "Unknown";
+      const primaryPartyName = firstQuote.getPrimaryParty()?.getName();
 
       expect(primaryPartyName).toBe("John Doe");
 
       const riskAnalysis = activeQuotes.toArray().map((quote) => {
         const primaryParty = quote.getPrimaryParty();
-        const vehicles = primaryParty?.getVehicles() || [];
+        const vehicles = primaryParty?.getVehicles();
 
         const hasHighRisk = quote.hasHighRiskElements();
         const totalValue = quote.getTotalVehicleValue();
 
         return {
           quoteNumber: quote.getQuoteNumber(),
-          vehicleCount: vehicles.length,
+          vehicleCount: vehicles?.length,
           totalValue,
           hasHighRisk,
         };
@@ -1895,7 +1736,7 @@ describe("Core Integration: Entity + Entities + Immer", () => {
     });
 
     it("should handle complex data transformations using entity methods", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
 
       const quoteSummaries = quotes
         .toArray()
@@ -1941,7 +1782,7 @@ describe("Core Integration: Entity + Entities + Immer", () => {
 
   describe("Immer Integration", () => {
     it("should demonstrate complex state updates with Immer", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
       const originalQuote = quotes.at(0);
 
       const updatedQuoteData = produce(originalQuote.raw()!, (draft) => {
@@ -1977,7 +1818,7 @@ describe("Core Integration: Entity + Entities + Immer", () => {
         }
       });
 
-      const updatedQuotes = new QuoteEntities([updatedQuoteData]);
+      const updatedQuotes = new Quotes([updatedQuoteData]);
       const updatedQuote = updatedQuotes.at(0);
 
       expect(originalQuote.getPremium()).toBe(1200);
@@ -1993,7 +1834,7 @@ describe("Core Integration: Entity + Entities + Immer", () => {
     });
 
     it("should handle Entities mutations with Immer", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
 
       const newQuoteData = partial<QuoteData>({
         _key: { id: "Q3" },
@@ -2061,10 +1902,9 @@ describe("Core Integration: Entity + Entities + Immer", () => {
       expect(updatedPortfolio.quotes[0].premium).toBe(1350);
       expect(updatedPortfolio.quotes[0].parties?.length).toBe(3);
 
-      const updatedQuotes = new QuoteEntities(updatedPortfolio.quotes);
+      const updatedQuotes = new Quotes(updatedPortfolio.quotes);
       const updatedQuote = updatedQuotes.at(0);
-      const newPartyName =
-        updatedQuote.getParties().at(2)?.getName() || "Not found";
+      const newPartyName = updatedQuote.getParties().at(2).getName();
 
       expect(newPartyName).toBe("Secondary Driver");
     });
@@ -2072,7 +1912,7 @@ describe("Core Integration: Entity + Entities + Immer", () => {
 
   describe("Combined Usage Patterns", () => {
     it("should demonstrate end-to-end workflow with entities and Entitiess", () => {
-      const quotes = new QuoteEntities(testData.quotes);
+      const quotes = new Quotes(testData.quotes);
 
       const activeQuotes = quotes.getActiveQuotes();
       expect(activeQuotes.length).toBe(1);
