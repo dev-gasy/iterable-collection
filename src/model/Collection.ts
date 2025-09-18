@@ -33,6 +33,10 @@ export abstract class Collection<
     ) => this)(items, this.parent);
   }
 
+  raw(): readonly TData[] {
+    return this.items;
+  }
+
   /** Accessors */
   at(index: number): TEntity {
     return this.createEntity(this.items[index]);
@@ -44,10 +48,6 @@ export abstract class Collection<
 
   toArray(): TEntity[] {
     return [...this];
-  }
-
-  toDataArray(): readonly TData[] {
-    return this.items;
   }
 
   /** Fluent mutators */

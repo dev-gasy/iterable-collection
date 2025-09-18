@@ -42,7 +42,7 @@ const toggleTodoReducer: Reducer<TodoEntitiesState, { id: string }> = (
   state,
   payload
 ) => {
-  const items = produce(state.toDataArray(), (draft) => {
+  const items = produce(state.raw(), (draft) => {
     const todo = draft.find((item) => item._key.id === payload.id);
     if (todo) {
       todo.completed = !todo.completed;
@@ -62,7 +62,7 @@ const updateTodoNameReducer: Reducer<
   TodoEntitiesState,
   { id: string; name: string }
 > = (state, payload) => {
-  const items = produce(state.toDataArray(), (draft) => {
+  const items = produce(state.raw(), (draft) => {
     const todo = draft.find((item) => item._key.id === payload.id);
     if (todo) {
       todo.name = payload.name;

@@ -1,6 +1,19 @@
-import { Entity } from "../../model/Entity";
-import { Collection } from "../../model/Collection";
-import type { VehicleData, PartyData } from "./types";
+import { Entity } from "../model/Entity.ts";
+import { Collection } from "../model/Collection.ts";
+import type { BusinessEntity } from "../model/types.ts";
+import type { PartyData } from "./Party.ts";
+
+// Domain Data Types for entity/Entities tests
+export interface VehicleData extends BusinessEntity {
+  vin?: string;
+  make: string;
+  model: string;
+  year: number;
+  value: number;
+  color?: string;
+  mileage?: number;
+  fuelType?: "gas" | "diesel" | "electric" | "hybrid";
+}
 
 export class Vehicle extends Entity<VehicleData, PartyData> {
   getDisplayName(): string {

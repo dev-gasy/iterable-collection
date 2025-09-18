@@ -1,7 +1,19 @@
-import { Entity } from "../../model/Entity";
-import { Collection } from "../../model/Collection";
-import { Violations } from "./Violation";
-import type { DriverData, PartyData } from "./types";
+import { Entity } from "../model/Entity.ts";
+import { Collection } from "../model/Collection.ts";
+import { type ViolationData, Violations } from "./Violation.ts";
+import type { BusinessEntity } from "../model/types.ts";
+import type { PartyData } from "./Party.ts";
+
+export interface DriverData extends BusinessEntity {
+  licenseNumber?: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  licenseState?: string;
+  violations?: ViolationData[];
+  experience?: number; // years of driving
+  education?: "high_school" | "college" | "graduate";
+}
 
 export class Driver extends Entity<DriverData, PartyData> {
   getFullName(): string {
@@ -17,7 +29,7 @@ export class Driver extends Entity<DriverData, PartyData> {
 
   getViolations(): Violations {
     const data = this.raw();
-    return new Violations(data?.violations ?? [], data);
+    return new Violations(data?.violations, data);
   }
 
   getRecentViolations(): Violations {

@@ -1,6 +1,16 @@
-import { Entity } from "../../model/Entity";
-import { Collection } from "../../model/Collection";
-import type { CoverageData, QuoteData } from "./types";
+import { Entity } from "../model/Entity.ts";
+import { Collection } from "../model/Collection.ts";
+import type { BusinessEntity } from "../model/types.ts";
+import type { QuoteData } from "./Quote.ts";
+
+export interface CoverageData extends BusinessEntity {
+  type: string;
+  limit: number;
+  deductible: number;
+  premium: number;
+  description?: string;
+  isRequired?: boolean;
+}
 
 export class Coverage extends Entity<CoverageData, QuoteData> {
   getType(): string {

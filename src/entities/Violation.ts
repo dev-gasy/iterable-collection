@@ -1,6 +1,16 @@
-import { Entity } from "../../model/Entity";
-import { Collection } from "../../model/Collection";
-import type { ViolationData, DriverData } from "./types";
+import { Entity } from "../model/Entity.ts";
+import { Collection } from "../model/Collection.ts";
+import type { BusinessEntity } from "../model/types.ts";
+import type { DriverData } from "./Driver.ts";
+
+export interface ViolationData extends BusinessEntity {
+  type: string;
+  date: string;
+  points: number;
+  fine?: number;
+  description?: string;
+  location?: string;
+}
 
 export class ViolationEntity extends Entity<ViolationData, DriverData> {
   isRecent(): boolean {

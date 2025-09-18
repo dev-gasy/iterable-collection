@@ -1,8 +1,19 @@
-import { Entity } from "../../model/Entity";
-import { Collection } from "../../model/Collection";
-import { Vehicles } from "./Vehicle";
-import { Drivers } from "./Driver";
-import type { PartyData, QuoteData } from "./types";
+import { Entity } from "../model/Entity.ts";
+import { Collection } from "../model/Collection.ts";
+import { type VehicleData, Vehicles } from "./Vehicle.ts";
+import { type DriverData, Drivers } from "./Driver.ts";
+import type { BusinessEntity } from "../model/types.ts";
+import type { QuoteData } from "./Quote.ts";
+
+export interface PartyData extends BusinessEntity {
+  name: string;
+  type: "primary" | "additional";
+  vehicles?: VehicleData[];
+  drivers?: DriverData[];
+  address?: string;
+  phone?: string;
+  email?: string;
+}
 
 export class Party extends Entity<PartyData, QuoteData> {
   getName(): string {
@@ -15,12 +26,12 @@ export class Party extends Entity<PartyData, QuoteData> {
 
   getVehicles(): Vehicles {
     const data = this.raw();
-    return new Vehicles(data?.vehicles ?? [], data);
+    return new Vehicles(data?.vehicles, data);
   }
 
   getDrivers(): Drivers {
     const data = this.raw();
-    return new Drivers(data?.drivers ?? [], data);
+    return new Drivers(data?.drivers, data);
   }
 
   getTotalVehicleValue(): number {

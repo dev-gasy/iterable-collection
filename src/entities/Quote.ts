@@ -1,10 +1,21 @@
-import { Entity } from "../../model/Entity";
-import { Collection } from "../../model/Collection";
-import { Parties } from "./Party";
-import { Coverages } from "./Coverage";
-import type { QuoteData } from "./types";
-import type { BusinessEntity } from "../../model/types";
-import type { Party } from "./Party";
+import { Entity } from "../model/Entity.ts";
+import { Collection } from "../model/Collection.ts";
+import { Parties, type PartyData } from "./Party.ts";
+import { type CoverageData, Coverages } from "./Coverage.ts";
+import type { BusinessEntity } from "../model/types.ts";
+import type { Party } from "./Party.ts";
+
+export interface QuoteData extends BusinessEntity {
+  quoteNumber: string;
+  status: "draft" | "active" | "expired";
+  premium: number;
+  effectiveDate?: string;
+  expirationDate?: string;
+  parties?: PartyData[];
+  coverages?: CoverageData[];
+  agent?: string;
+  discounts?: number;
+}
 
 export class Quote extends Entity<QuoteData, BusinessEntity> {
   getQuoteNumber(): string {
@@ -22,12 +33,12 @@ export class Quote extends Entity<QuoteData, BusinessEntity> {
 
   getParties(): Parties {
     const data = this.raw();
-    return new Parties(data?.parties ?? [], data);
+    return new Parties(data?.parties, data);
   }
 
   getCoverages(): Coverages {
     const data = this.raw();
-    return new Coverages(data?.coverages ?? [], data);
+    return new Coverages(data?.coverages, data);
   }
 
   getPrimaryParty(): Party | undefined {
