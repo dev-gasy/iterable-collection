@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { produce } from "immer";
 
-import { Entity } from "../collection/Entity";
-import { IterableCollection } from "../collection/IterableCollection";
-import type { BusinessEntity } from "../collection/types";
 import { partial } from "../partial/utils";
+import type { BusinessEntity } from "../model/types";
+import { Entity } from "../model/Entity";
+import { Entities } from "../model/Entities";
 
 type Reducer<State, Payload> = (state: State, payload: Payload) => State;
 
@@ -23,26 +23,22 @@ class TodoEntity extends Entity<TodoData> {
   }
 }
 
-class TodoCollection extends IterableCollection<
-  TodoData,
-  TodoEntity,
-  BusinessEntity
-> {
+class TodoEntities extends Entities<TodoData, TodoEntity, BusinessEntity> {
   protected createEntity(data?: TodoData): TodoEntity {
     return new TodoEntity(data);
   }
 }
 
-type TodoCollectionState = TodoCollection;
+type TodoEntitiesState = TodoEntities;
 
 const addTodoReducer: Reducer<
-  TodoCollectionState,
+  TodoEntitiesState,
   { name: string; id: string }
 > = (state, payload) => {
   return state.push(partial({ _key: { id: payload.id }, name: payload.name }));
 };
 
-const toggleTodoReducer: Reducer<TodoCollectionState, { id: string }> = (
+const toggleTodoReducer: Reducer<TodoEntitiesState, { id: string }> = (
   state,
   payload
 ) => {
@@ -55,7 +51,7 @@ const toggleTodoReducer: Reducer<TodoCollectionState, { id: string }> = (
   return state.create(items);
 };
 
-const removeTodoReducer: Reducer<TodoCollectionState, { id: string }> = (
+const removeTodoReducer: Reducer<TodoEntitiesState, { id: string }> = (
   state,
   payload
 ) => {
@@ -63,7 +59,7 @@ const removeTodoReducer: Reducer<TodoCollectionState, { id: string }> = (
 };
 
 const updateTodoNameReducer: Reducer<
-  TodoCollectionState,
+  TodoEntitiesState,
   { id: string; name: string }
 > = (state, payload) => {
   const items = produce(state.toDataArray(), (draft) => {
@@ -75,12 +71,12 @@ const updateTodoNameReducer: Reducer<
   return state.create(items);
 };
 
-const clearCompletedReducer: Reducer<TodoCollectionState, void> = (state) => {
+const clearCompletedReducer: Reducer<TodoEntitiesState, void> = (state) => {
   return state.filter((entity) => !entity.completed);
 };
 
 const insertTodoAtReducer: Reducer<
-  TodoCollectionState,
+  TodoEntitiesState,
   { index: number; name: string; id: string }
 > = (state, payload) => {
   return state.insertAt(
@@ -89,10 +85,10 @@ const insertTodoAtReducer: Reducer<
   );
 };
 
-describe("Flux-style collection reducers", () => {
+describe("Flux-style Entities reducers", () => {
   describe("addTodoReducer", () => {
-    it("should add a new todo to empty collection", () => {
-      const state = new TodoCollection();
+    it("should add a new todo to empty Entities", () => {
+      const state = new TodoEntities();
       const payload = { name: "Learn reducers", id: "1" };
 
       const newState = addTodoReducer(state, payload);
@@ -104,11 +100,11 @@ describe("Flux-style collection reducers", () => {
       expect(newState).not.toBe(state);
     });
 
-    it("should add a new todo to existing collection", () => {
+    it("should add a new todo to existing Entities", () => {
       const initialData = [
         partial<TodoData>({ _key: { id: "1" }, name: "First todo" }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { name: "Second todo", id: "2" };
 
       const newState = addTodoReducer(state, payload);
@@ -134,7 +130,7 @@ describe("Flux-style collection reducers", () => {
           completed: true,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { id: "1" };
 
       const newState = toggleTodoReducer(state, payload);
@@ -157,7 +153,7 @@ describe("Flux-style collection reducers", () => {
           completed: true,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { id: "1" };
 
       const newState = toggleTodoReducer(state, payload);
@@ -166,7 +162,7 @@ describe("Flux-style collection reducers", () => {
       expect(newState.at(1).completed).toBe(true);
     });
 
-    it("should return same collection when id not found", () => {
+    it("should return same Entities when id not found", () => {
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -174,7 +170,7 @@ describe("Flux-style collection reducers", () => {
           completed: false,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { id: "999" };
 
       const newState = toggleTodoReducer(state, payload);
@@ -203,7 +199,7 @@ describe("Flux-style collection reducers", () => {
           completed: false,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { id: "2" };
 
       const newState = removeTodoReducer(state, payload);
@@ -214,7 +210,7 @@ describe("Flux-style collection reducers", () => {
       expect(newState).not.toBe(state);
     });
 
-    it("should return same collection when id not found", () => {
+    it("should return same Entities when id not found", () => {
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -222,7 +218,7 @@ describe("Flux-style collection reducers", () => {
           completed: false,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { id: "999" };
 
       const newState = removeTodoReducer(state, payload);
@@ -232,8 +228,8 @@ describe("Flux-style collection reducers", () => {
       expect(newState).not.toBe(state);
     });
 
-    it("should handle empty collection", () => {
-      const state = new TodoCollection();
+    it("should handle empty Entities", () => {
+      const state = new TodoEntities();
       const payload = { id: "1" };
 
       const newState = removeTodoReducer(state, payload);
@@ -257,7 +253,7 @@ describe("Flux-style collection reducers", () => {
           completed: true,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { id: "1", name: "New name" };
 
       const newState = updateTodoNameReducer(state, payload);
@@ -276,7 +272,7 @@ describe("Flux-style collection reducers", () => {
           completed: true,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { id: "1", name: "New name" };
 
       const newState = updateTodoNameReducer(state, payload);
@@ -284,7 +280,7 @@ describe("Flux-style collection reducers", () => {
       expect(newState.at(0).completed).toBe(true);
     });
 
-    it("should return same collection when id not found", () => {
+    it("should return same Entities when id not found", () => {
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -292,7 +288,7 @@ describe("Flux-style collection reducers", () => {
           completed: false,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { id: "999", name: "New name" };
 
       const newState = updateTodoNameReducer(state, payload);
@@ -326,7 +322,7 @@ describe("Flux-style collection reducers", () => {
           completed: true,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
 
       const newState = clearCompletedReducer(state);
 
@@ -336,7 +332,7 @@ describe("Flux-style collection reducers", () => {
       expect(newState).not.toBe(state);
     });
 
-    it("should return empty collection when all todos are completed", () => {
+    it("should return empty Entities when all todos are completed", () => {
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -349,14 +345,14 @@ describe("Flux-style collection reducers", () => {
           completed: true,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
 
       const newState = clearCompletedReducer(state);
 
       expect(newState.length).toBe(0);
     });
 
-    it("should return same collection when no todos are completed", () => {
+    it("should return same Entities when no todos are completed", () => {
       const initialData = [
         partial<TodoData>({
           _key: { id: "1" },
@@ -369,7 +365,7 @@ describe("Flux-style collection reducers", () => {
           completed: false,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
 
       const newState = clearCompletedReducer(state);
 
@@ -379,8 +375,8 @@ describe("Flux-style collection reducers", () => {
       expect(newState).not.toBe(state);
     });
 
-    it("should handle empty collection", () => {
-      const state = new TodoCollection();
+    it("should handle empty Entities", () => {
+      const state = new TodoEntities();
 
       const newState = clearCompletedReducer(state);
 
@@ -403,7 +399,7 @@ describe("Flux-style collection reducers", () => {
           completed: false,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { index: 1, name: "Second todo", id: "2" };
 
       const newState = insertTodoAtReducer(state, payload);
@@ -423,7 +419,7 @@ describe("Flux-style collection reducers", () => {
           completed: false,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { index: 0, name: "First todo", id: "1" };
 
       const newState = insertTodoAtReducer(state, payload);
@@ -441,7 +437,7 @@ describe("Flux-style collection reducers", () => {
           completed: false,
         }),
       ];
-      const state = new TodoCollection(initialData);
+      const state = new TodoEntities(initialData);
       const payload = { index: 10, name: "Last todo", id: "2" };
 
       const newState = insertTodoAtReducer(state, payload);

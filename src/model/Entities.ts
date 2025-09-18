@@ -4,9 +4,9 @@ import type { Entity } from "./Entity.ts";
 import type { BusinessEntity } from "./types.ts";
 
 /**
- * Minimal fluent immutable iterable collection of entities.
+ * Minimal fluent immutable iterable Entities of entities.
  */
-export abstract class IterableCollection<
+export abstract class Entities<
   TData extends BusinessEntity,
   TEntity extends Entity<TData, TParent>,
   TParent extends BusinessEntity
