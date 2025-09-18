@@ -1,13 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { from } from "../lens/lens.ts";
-import { IterableCollection } from "./IterableCollection.ts";
-import { Entity } from "./Entity.ts";
-import type { BusinessEntity } from "./types.ts";
+import { produce } from "immer";
+import type { BusinessEntity } from "../collection/types";
+import { Entity } from "../collection/Entity";
+import { IterableCollection } from "../collection/IterableCollection";
 
-// Use case: Insurance Quote Management System
-// Demonstrates integration of Entity, IterableCollection, and Fluent navigation
-
-// Domain Data Types
+// Domain Data Types for entity/collections tests
 interface VehicleData extends BusinessEntity {
   vin: string;
   make: string;
@@ -217,10 +214,8 @@ class VehicleCollection extends IterableCollection<
   }
 
   getClassicVehicles(): VehicleCollection {
-    const classicVehicles = this.toArray().filter((vehicle) =>
-      vehicle.isClassic()
-    );
-    const classicData = classicVehicles
+    const classicData = this.toArray()
+      .filter((vehicle) => vehicle.isClassic())
       .map((vehicle) => vehicle.raw())
       .filter((data): data is VehicleData => data != null);
     return new VehicleCollection(classicData, this.parent);
@@ -244,10 +239,8 @@ class DriverCollection extends IterableCollection<
   }
 
   getHighRiskDrivers(): DriverCollection {
-    const highRiskDrivers = this.toArray().filter((driver) =>
-      driver.isHighRisk()
-    );
-    const highRiskData = highRiskDrivers
+    const highRiskData = this.toArray()
+      .filter((driver) => driver.isHighRisk())
       .map((driver) => driver.raw())
       .filter((data): data is DriverData => data != null);
     return new DriverCollection(highRiskData, this.parent);
@@ -271,18 +264,16 @@ class QuoteCollection extends IterableCollection<
   }
 
   getActiveQuotes(): QuoteCollection {
-    const activeQuotes = this.toArray().filter((quote) => quote.isActive());
-    const activeData = activeQuotes
+    const activeData = this.toArray()
+      .filter((quote) => quote.isActive())
       .map((quote) => quote.raw())
       .filter((data): data is QuoteData => data != null);
     return new QuoteCollection(activeData);
   }
 
   getHighRiskQuotes(): QuoteCollection {
-    const highRiskQuotes = this.toArray().filter((quote) =>
-      quote.hasHighRiskElements()
-    );
-    const highRiskData = highRiskQuotes
+    const highRiskData = this.toArray()
+      .filter((quote) => quote.hasHighRiskElements())
       .map((quote) => quote.raw())
       .filter((data): data is QuoteData => data != null);
     return new QuoteCollection(highRiskData);
@@ -297,7 +288,7 @@ class QuoteCollection extends IterableCollection<
 }
 
 // Test Data Factory
-function createTestData() {
+function createEntityTestData() {
   const violationData: ViolationData[] = [
     {
       _key: { rootId: "violations", revisionNo: 1, id: "V1" },
@@ -416,8 +407,8 @@ function createTestData() {
   };
 }
 
-describe("Integration: Fluent + IterableCollection + Entity", () => {
-  const testData = createTestData();
+describe("Entity and Collection Tests", () => {
+  const testData = createEntityTestData();
 
   describe("Entity functionality", () => {
     it("should work with individual entities", () => {
@@ -452,6 +443,26 @@ describe("Integration: Fluent + IterableCollection + Entity", () => {
       expect(modernVehicle.isClassic()).toBe(false);
       expect(classicVehicle.isClassic()).toBe(true);
       expect(classicVehicle.getDisplayName()).toBe("1995 BMW 3 Series");
+    });
+
+    it("should handle null/undefined data in entities", () => {
+      const invalidQuoteData = {
+        _key: { rootId: "quotes", revisionNo: 1, id: "Q4" },
+        quoteNumber: null as any,
+        status: undefined as any,
+        premium: NaN,
+        effectiveDate: "",
+        parties: null as any,
+        coverages: undefined as any,
+      };
+
+      const quote = new QuoteEntity(invalidQuoteData);
+
+      expect(quote.getQuoteNumber()).toBe("Unknown");
+      expect(quote.getStatus()).toBe("draft");
+      expect(quote.getPremium()).toBe(0);
+      expect(quote.getParties()).toEqual([]);
+      expect(quote.getCoverages()).toEqual([]);
     });
   });
 
@@ -491,199 +502,6 @@ describe("Integration: Fluent + IterableCollection + Entity", () => {
       expect(highRiskDrivers.length).toBe(1); // Only the young driver
       expect(highRiskDrivers.at(0).getFullName()).toBe("Jane Smith");
     });
-  });
-
-  describe("Lens-based navigation with complex data", () => {
-    it("should navigate through complex quote structure", () => {
-      const quoteData = {
-        portfolio: {
-          quotes: testData.quotes,
-          metadata: {
-            created: "2024-01-01",
-            version: 1,
-          },
-        },
-      };
-
-      // Navigate using improved type inference - much cleaner!
-      const activeQuote = from(quoteData)
-        .safeProp("portfolio")
-        .safeProp("quotes")
-        .findItem((quote: QuoteData) => quote.status === "active")
-        .get();
-
-      expect(activeQuote).toBeDefined();
-
-      if (activeQuote) {
-        const primaryParty = from(activeQuote)
-          .safeProp("parties")
-          .findItem((party: PartyData) => party.type === "primary")
-          .get();
-
-        expect(primaryParty).toBeDefined();
-
-        if (primaryParty) {
-          const firstVehicleVin = from(primaryParty)
-            .safeProp("vehicles")
-            .at<VehicleData>(0)
-            .safeProp("vin")
-            .getOr("Unknown VIN");
-
-          expect(firstVehicleVin).toBe("1HGBH41JXMN109186");
-        }
-      }
-    });
-
-    it("should calculate risk scores using lens navigation", () => {
-      const portfolioData = {
-        quotes: testData.quotes,
-        riskFactors: {
-          youngDriverMultiplier: 1.5,
-          classicCarMultiplier: 0.8,
-          violationPointsCost: 50,
-        },
-      };
-
-      // Calculate risk score using improved type inference
-      const baseRisk = from(portfolioData)
-        .safeProp("quotes")
-        .at<QuoteData>(0)
-        .safeProp("premium")
-        .getOr(0);
-
-      const drivers = from(portfolioData)
-        .safeProp("quotes")
-        .at<QuoteData>(0)
-        .safeProp("parties")
-        .findItem((party: PartyData) => party.type === "primary")
-        .safeProp("drivers")
-        .getOr([]);
-
-      const hasYoungDrivers = drivers.some(
-        (d: DriverData) => new DriverEntity(d).getAge() < 25
-      );
-
-      const violationCounts = drivers.map(
-        (driver: DriverData) => driver.violations?.length ?? 0
-      );
-      const violationPoints = violationCounts.reduce(
-        (sum: number, count: number) => sum + count,
-        0
-      );
-
-      expect(typeof baseRisk).toBe("number");
-      expect(baseRisk).toBe(1200);
-      expect(hasYoungDrivers).toBe(true);
-      expect(violationPoints).toBeGreaterThan(0);
-    });
-
-    it("should handle missing data gracefully with lens navigation", () => {
-      const incompleteData = {
-        quotes: [
-          {
-            _key: { rootId: "quotes", revisionNo: 1, id: "Q3" },
-            quoteNumber: "QT-2024-003",
-            status: "draft",
-            premium: 0,
-            effectiveDate: "2024-03-01",
-            parties: null, // Missing parties
-            coverages: [],
-          },
-        ],
-      };
-
-      // Should handle null parties gracefully using improved lens navigation
-      const primaryPartyName = from(incompleteData)
-        .safeProp("quotes")
-        .at(0)
-        .safeProp("parties")
-        .findItem((party: any) => party?.type === "primary")
-        .safeProp("name")
-        .getOr("No Primary Party");
-
-      const parties = from(incompleteData)
-        .safeProp("quotes")
-        .at(0)
-        .safeProp("parties")
-        .getOr([]);
-
-      // Calculate total vehicles safely
-      const totalVehicles = Array.isArray(parties)
-        ? parties.reduce(
-            (sum: number, party: any) => sum + (party?.vehicles?.length ?? 0),
-            0
-          )
-        : 0;
-
-      expect(primaryPartyName).toBe("No Primary Party");
-      expect(totalVehicles).toBe(0);
-    });
-
-    it("should demonstrate optimized lens performance", () => {
-      const quoteData = {
-        portfolio: {
-          quotes: testData.quotes,
-          metadata: {
-            created: "2024-01-01",
-            version: 1,
-          },
-        },
-      };
-
-      // Direct fluent navigation - now optimized for performance
-      const activeQuoteNumber = from(quoteData)
-        .safeProp("portfolio")
-        .safeProp("quotes")
-        .findItem((quote: QuoteData) => quote.status === "active")
-        .safeProp("quoteNumber")
-        .getOr("No Quote Number");
-
-      expect(activeQuoteNumber).toBe("QT-2024-001");
-
-      // Fast transform with optimized implementation
-      const quoteInfo = from(quoteData)
-        .safeProp("portfolio")
-        .safeProp("quotes")
-        .at<QuoteData>(0)
-        .transform((quote: QuoteData) => ({
-          number: quote.quoteNumber,
-          premium: quote.premium,
-          partyCount: quote.parties?.length ?? 0,
-        }))
-        .getOr({ number: "Unknown", premium: 0, partyCount: 0 });
-
-      expect(quoteInfo.number).toBe("QT-2024-001");
-      expect(quoteInfo.premium).toBe(1200);
-      expect(quoteInfo.partyCount).toBe(2);
-
-      // Demonstrate high-performance array operations
-      const highValueVehicle = from(quoteData)
-        .safeProp("portfolio")
-        .safeProp("quotes")
-        .at<QuoteData>(0)
-        .safeProp("parties")
-        .findItem((party: PartyData) => party.type === "primary")
-        .safeProp("vehicles")
-        .findItem((vehicle: VehicleData) => vehicle.value > 20000)
-        .safeProp("vin")
-        .getOr("No high-value vehicle");
-
-      expect(highValueVehicle).toBe("1HGBH41JXMN109186");
-    });
-  });
-
-  describe("Error handling and edge cases", () => {
-    it("should handle index bounds safely", () => {
-      const quotes = new QuoteCollection(testData.quotes);
-
-      const outOfBounds = quotes.at(999);
-      expect(outOfBounds).toBeDefined();
-      expect(outOfBounds.raw()).toBeUndefined();
-
-      const negative = quotes.at(-1);
-      expect(negative).toBeDefined();
-      expect(negative.raw()).toBeUndefined();
-    });
 
     it("should preserve immutability", () => {
       const quotes = new QuoteCollection(testData.quotes);
@@ -704,24 +522,102 @@ describe("Integration: Fluent + IterableCollection + Entity", () => {
       expect(quotes).not.toBe(newQuotes);
     });
 
-    it("should handle null/undefined data in entities", () => {
-      const invalidQuoteData = {
-        _key: { rootId: "quotes", revisionNo: 1, id: "Q4" },
-        quoteNumber: null as any,
-        status: undefined as any,
-        premium: NaN,
-        effectiveDate: "",
-        parties: null as any,
-        coverages: undefined as any,
+    it("should handle index bounds safely", () => {
+      const quotes = new QuoteCollection(testData.quotes);
+
+      const outOfBounds = quotes.at(999);
+      expect(outOfBounds).toBeDefined();
+      expect(outOfBounds.raw()).toBeUndefined();
+
+      const negative = quotes.at(-1);
+      expect(negative).toBeDefined();
+      expect(negative.raw()).toBeUndefined();
+    });
+  });
+
+  describe("Immer integration with entities and collections", () => {
+    it("should demonstrate complex state updates with Immer", () => {
+      const quotes = new QuoteCollection(testData.quotes);
+      const originalQuote = quotes.at(0);
+
+      // Create a complex state update using Immer
+      const updatedQuoteData = produce(originalQuote.raw()!, (draft) => {
+        // Update quote premium
+        draft.premium = 1500;
+
+        // Add a new coverage
+        draft.coverages.push({
+          _key: { rootId: "coverages", revisionNo: 1, id: "C3" },
+          type: "collision",
+          limit: 75000,
+          deductible: 500,
+          premium: 300,
+        });
+
+        // Update primary party's first vehicle value
+        const primaryParty = draft.parties.find((p) => p.type === "primary");
+        if (primaryParty && primaryParty.vehicles.length > 0) {
+          primaryParty.vehicles[0].value = 30000;
+        }
+
+        // Add a new violation to the first driver
+        const firstDriver = primaryParty?.drivers[0];
+        if (firstDriver) {
+          firstDriver.violations.push({
+            _key: { rootId: "violations", revisionNo: 1, id: "V3" },
+            type: "parking",
+            date: "2024-01-15",
+            points: 1,
+          });
+        }
+      });
+
+      // Create new collections with updated data
+      const updatedQuote = new QuoteCollection([updatedQuoteData]).at(0);
+
+      // Verify original data unchanged
+      expect(originalQuote.getPremium()).toBe(1200);
+      expect(originalQuote.getCoverages().length).toBe(2);
+
+      // Verify updates applied
+      expect(updatedQuote.getPremium()).toBe(1500);
+      expect(updatedQuote.getCoverages().length).toBe(3);
+      expect(updatedQuote.getCoverages()[2].getType()).toBe("collision");
+
+      const updatedPrimaryParty = updatedQuote.getPrimaryParty();
+      expect(updatedPrimaryParty?.getVehicles()[0].getValue()).toBe(30000);
+      expect(updatedPrimaryParty?.getDrivers()[0].getTotalPoints()).toBe(4); // 3 + 1 new point
+    });
+
+    it("should handle collection mutations with Immer", () => {
+      const quotes = new QuoteCollection(testData.quotes);
+
+      // Use Immer to create complex collection updates
+      const newQuoteData: QuoteData = {
+        _key: { rootId: "quotes", revisionNo: 1, id: "Q3" },
+        quoteNumber: "QT-2024-003",
+        status: "active",
+        premium: 950,
+        effectiveDate: "2024-03-01",
+        parties: [],
+        coverages: [],
       };
 
-      const quote = new QuoteEntity(invalidQuoteData);
+      // Add new quote and update existing ones using collection methods (which use Immer internally)
+      const expandedQuotes = quotes.push(newQuoteData).insertAt(1, {
+        _key: { rootId: "quotes", revisionNo: 1, id: "Q4" },
+        quoteNumber: "QT-2024-004",
+        status: "draft",
+        premium: 750,
+        effectiveDate: "2024-04-01",
+        parties: [],
+        coverages: [],
+      });
 
-      expect(quote.getQuoteNumber()).toBe("Unknown");
-      expect(quote.getStatus()).toBe("draft");
-      expect(quote.getPremium()).toBe(0);
-      expect(quote.getParties()).toEqual([]);
-      expect(quote.getCoverages()).toEqual([]);
+      expect(quotes.length).toBe(2); // Original unchanged
+      expect(expandedQuotes.length).toBe(4); // New collection with additions
+      expect(expandedQuotes.at(1).getQuoteNumber()).toBe("QT-2024-004");
+      expect(expandedQuotes.at(3).getQuoteNumber()).toBe("QT-2024-003");
     });
   });
 
@@ -749,107 +645,50 @@ describe("Integration: Fluent + IterableCollection + Entity", () => {
     });
   });
 
-  describe("Combined usage patterns", () => {
-    it("should demonstrate end-to-end workflow", () => {
-      // Start with raw data and build collections
+  describe("Advanced collection patterns", () => {
+    it("should support collection chaining and filtering", () => {
       const quotes = new QuoteCollection(testData.quotes);
 
-      // Use collections to filter and process
-      const activeQuotes = quotes.getActiveQuotes();
-      expect(activeQuotes.length).toBe(1);
+      // Chain multiple collection operations
+      const result = quotes
+        .filter((quote) => quote.getPremium() > 1000)
+        .map((quote) => ({
+          number: quote.getQuoteNumber(),
+          premium: quote.getPremium(),
+          isHighRisk: quote.hasHighRiskElements(),
+        }));
 
-      // Get entities from collections
-      const firstQuote = activeQuotes.at(0);
+      expect(result.length).toBe(1);
+      expect(result[0]).toEqual({
+        number: "QT-2024-001",
+        premium: 1200,
+        isHighRisk: true,
+      });
+    });
+
+    it("should handle nested entity relationships", () => {
+      const quotes = new QuoteCollection(testData.quotes);
+      const firstQuote = quotes.at(0);
+
+      // Navigate through entity relationships
       const primaryParty = firstQuote.getPrimaryParty();
       expect(primaryParty).toBeDefined();
 
-      // Use entities to access nested collections
-      const vehicles = primaryParty?.getVehicles();
-      const drivers = primaryParty?.getDrivers();
+      const vehicles = primaryParty!.getVehicles();
+      expect(vehicles.length).toBe(2);
 
-      // Use improved lens navigation on entity data
-      const quoteRaw = firstQuote.raw();
+      const drivers = primaryParty!.getDrivers();
+      expect(drivers.length).toBe(2);
 
-      const firstDriverViolations = quoteRaw
-        ? from(quoteRaw)
-            .safeProp("parties")
-            .findItem((party: PartyData) => party.type === "primary")
-            .safeProp("drivers")
-            .at<DriverData>(0)
-            .safeProp("violations")
-            .getOr([])
-        : [];
+      // Test specific vehicle properties
+      const classicVehicle = vehicles.find((v) => v.isClassic());
+      expect(classicVehicle).toBeDefined();
+      expect(classicVehicle!.getDisplayName()).toBe("1995 BMW 3 Series");
 
-      expect(vehicles?.length).toBe(2);
-      expect(drivers?.length).toBe(2);
-      expect(firstDriverViolations.length).toBe(2);
-
-      // Combine everything for business logic
-      const riskAssessment = {
-        hasClassicVehicles: vehicles?.some((v) => v.isClassic()),
-        hasHighRiskDrivers: drivers?.some((d) => d.isHighRisk()),
-        totalVehicleValue: vehicles?.reduce((sum, v) => sum + v.getValue(), 0),
-        totalPoints: drivers?.reduce((sum, d) => sum + d.getTotalPoints(), 0),
-      };
-
-      expect(riskAssessment.hasClassicVehicles).toBe(true);
-      expect(riskAssessment.hasHighRiskDrivers).toBe(true);
-      expect(riskAssessment.totalVehicleValue).toBe(40000);
-      expect(riskAssessment.totalPoints).toBe(3);
-    });
-
-    it("should handle data transformation pipeline", () => {
-      const quotes = new QuoteCollection(testData.quotes);
-
-      // Transform quotes to summary objects using all three patterns
-      const quoteSummaries = quotes
-        .toArray()
-        .map((quote) => {
-          const raw = quote.raw();
-          if (!raw) return null;
-
-          // Use improved lens navigation for complex data extraction
-          const parties = from(raw)
-            .safeProp("parties")
-            .getOr([]) as PartyData[];
-
-          const vehicleCount = parties.reduce(
-            (sum: number, party: PartyData) =>
-              sum + (party?.vehicles?.length ?? 0),
-            0
-          );
-          const driverCount = parties.reduce(
-            (sum: number, party: PartyData) =>
-              sum + (party?.drivers?.length ?? 0),
-            0
-          );
-
-          // Use entity methods for business logic
-          const totalValue = quote.getTotalVehicleValue();
-          const isHighRisk = quote.hasHighRiskElements();
-
-          return {
-            quoteNumber: quote.getQuoteNumber(),
-            status: quote.getStatus(),
-            premium: quote.getPremium(),
-            vehicleCount,
-            driverCount,
-            totalValue,
-            isHighRisk,
-          };
-        })
-        .filter((summary) => summary !== null);
-
-      expect(quoteSummaries).toHaveLength(2);
-      expect(quoteSummaries[0]).toEqual({
-        quoteNumber: "QT-2024-001",
-        status: "active",
-        premium: 1200,
-        vehicleCount: 2,
-        driverCount: 2,
-        totalValue: 40000,
-        isHighRisk: true,
-      });
+      // Test driver risk assessment
+      const highRiskDriver = drivers.find((d) => d.isHighRisk());
+      expect(highRiskDriver).toBeDefined();
+      expect(highRiskDriver!.getFullName()).toBe("Jane Smith");
     });
   });
 });

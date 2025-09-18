@@ -1,6 +1,6 @@
-import { Entity } from "./Entity";
-import { IterableCollection } from "./IterableCollection";
-import type { BusinessEntity } from "./types";
+import { Entity } from "../collection/Entity";
+import { IterableCollection } from "../collection/IterableCollection";
+import type { BusinessEntity } from "../collection/types";
 
 export interface TestData extends BusinessEntity {
   name: string;
