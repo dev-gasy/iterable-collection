@@ -6,4 +6,5 @@ export interface Key {
 
 export interface BusinessEntity {
   readonly _key: Key;
+  readonly name?: string;
 }

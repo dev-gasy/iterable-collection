@@ -14,6 +14,10 @@ export class Entity<
     this.parent = Object.freeze(parent);
   }
 
+  public get name() {
+    return this.value?.name;
+  }
+
   public id(): string | undefined {
     return this.value?._key?.id;
   }
