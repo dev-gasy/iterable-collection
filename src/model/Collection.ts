@@ -26,7 +26,7 @@ export abstract class Collection<
   }
 
   /** Factory method for cloning with new values */
-  protected create(values: readonly TData[]): this {
+  public create(values: readonly TData[]): this {
     return new (this.constructor as new (
       values: readonly TData[],
       parent?: TParent

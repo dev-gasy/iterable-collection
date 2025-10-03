@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { produce } from "immer";
 
-import { partial } from "../partial/utils";
-import type { BusinessEntity } from "../model/types";
-import { Entity } from "../model/Entity";
-import { Collection } from "../model/Collection";
+import { partial } from "../src/partial";
+import type { BusinessEntity } from "../src/model/types";
+import { Entity } from "../src/model/Entity";
+import { Collection } from "../src/model/Collection";
 
 type Reducer<State, Payload> = (state: State, payload: Payload) => State;
 
@@ -35,7 +35,9 @@ const addTodoReducer: Reducer<
   TodoEntitiesState,
   { name: string; id: string }
 > = (state, payload) => {
-  return state.push(partial({ _key: { id: payload.id }, name: payload.name }));
+  return state.update((draft) => {
+    draft.push(partial({ _key: { id: payload.id }, name: payload.name }));
+  });
 };
 
 const toggleTodoReducer: Reducer<TodoEntitiesState, { id: string }> = (
@@ -79,10 +81,10 @@ const insertTodoAtReducer: Reducer<
   TodoEntitiesState,
   { index: number; name: string; id: string }
 > = (state, payload) => {
-  return state.insertAt(
-    payload.index,
-    partial({ _key: { id: payload.id }, name: payload.name })
-  );
+  return state.update((draft) => {
+    const actualIndex = Math.max(0, Math.min(payload.index, draft.length));
+    draft.splice(actualIndex, 0, partial({ _key: { id: payload.id }, name: payload.name }));
+  });
 };
 
 describe("Flux-style Entities reducers", () => {
