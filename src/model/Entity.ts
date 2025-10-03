@@ -1,4 +1,5 @@
-import type { BusinessEntity } from "./types.ts";
+import { produce, type Draft } from "immer";
+import type { BusinessEntity, EntityConstructor } from "./types.ts";
 import { Pipeable } from "./Pipeable.ts";
 
 export class Entity<
@@ -22,7 +23,33 @@ export class Entity<
     return this.value?._key?.id;
   }
 
+  public exists(): boolean {
+    return this.value !== undefined;
+  }
+
+  public isEmpty(): boolean {
+    return this.value === undefined;
+  }
+
   public raw(): TData | undefined {
     return this.value;
+  }
+
+  public update(updater: (draft: Draft<TData>) => void): this {
+    if (!this.value) {
+      return this;
+    }
+
+    return new (this.constructor as EntityConstructor<TData, TParent, this>)(
+      produce(this.value, updater),
+      this.parent
+    );
+  }
+
+  public copy(): this {
+    return new (this.constructor as EntityConstructor<TData, TParent, this>)(
+      this.value,
+      this.parent
+    );
   }
 }

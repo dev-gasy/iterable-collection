@@ -5,7 +5,7 @@ import type { BusinessEntity } from "./types.ts";
 import { Pipeable } from "./Pipeable.ts";
 
 /**
- * Minimal fluent immutable iterable Entities of entities.
+ * Minimal fluent immutable iterable collection of entities.
  */
 export abstract class Collection<
     TData extends BusinessEntity,
@@ -15,87 +15,87 @@ export abstract class Collection<
   extends Pipeable
   implements Iterable<TEntity>
 {
-  protected readonly items: readonly TData[];
+  protected readonly values: readonly TData[];
   protected readonly parent?: TParent;
 
   /** Constructor */
-  constructor(items: readonly TData[] = [], parent?: TParent) {
+  constructor(values: readonly TData[] = [], parent?: TParent) {
     super();
-    this.items = Object.freeze([...items]);
-    this.parent = Object.freeze(parent);
+    this.values = Object.freeze([...values]);
+    this.parent = parent ? Object.freeze(parent) : undefined;
   }
 
-  /** Clone factory */
-  create(items: readonly TData[]): this {
+  /** Factory method for cloning with new values */
+  protected create(values: readonly TData[]): this {
     return new (this.constructor as new (
-      items: readonly TData[],
+      values: readonly TData[],
       parent?: TParent
-    ) => this)(items, this.parent);
+    ) => this)(values, this.parent);
   }
 
+  /** Access raw immutable values */
   raw(): readonly TData[] {
-    return this.items;
+    return this.values;
   }
 
   /** Accessors */
   at(index: number): TEntity {
-    return this.createEntity(this.items[index]);
+    return this.createEntity(this.values[index]);
   }
 
   get length(): number {
-    return this.items.length;
+    return this.values.length;
+  }
+
+  get isEmpty(): boolean {
+    return this.length === 0;
   }
 
   toArray(): TEntity[] {
-    return [...this];
+    return this.values.map((v) => this.createEntity(v));
   }
 
-  /** Fluent mutators */
-  push(item: TData): this {
-    return this.create(
-      produce(this.items, (draft) => {
-        draft.push(item as Draft<TData>);
-      })
-    );
-  }
-
-  insertAt(index: number, item: TData): this {
-    const clampedIndex = Math.max(0, Math.min(index, this.items.length));
-    return this.create(
-      produce(this.items, (draft) => {
-        draft.splice(clampedIndex, 0, item as Draft<TData>);
-      })
-    );
-  }
-
-  removeAt(index: number): this {
-    if (index < 0 || index >= this.items.length) {
-      return this;
-    }
-    return this.create(
-      produce(this.items, (draft) => {
-        draft.splice(index, 1);
-      })
-    );
-  }
-
+  /** Functional methods */
   filter(predicate: (entity: TEntity, index: number) => boolean): this {
-    return this.create(
-      this.items.filter((d, i) => predicate(this.createEntity(d), i))
-    );
+    const items: TData[] = [];
+    for (let i = 0; i < this.values.length; i++) {
+      const e = this.createEntity(this.values[i]);
+      if (predicate(e, i)) items.push(this.values[i]);
+    }
+    return this.create(items);
   }
 
   map<U>(mapper: (entity: TEntity, index: number) => U): U[] {
-    return this.items.map((d, i) => mapper(this.createEntity(d), i));
+    return this.values.map((v, i) => mapper(this.createEntity(v), i));
+  }
+
+  reduce<U>(
+    reducer: (accumulator: U, entity: TEntity, index: number) => U,
+    initialValue: U
+  ): U {
+    return this.values.reduce(
+      (acc, v, i) => reducer(acc, this.createEntity(v), i),
+      initialValue
+    );
+  }
+
+  /** Immutable update on raw data */
+  update(updater: (draft: Draft<TData[]>) => void): this {
+    const items = produce(this.values, updater);
+    return this.create(items);
+  }
+
+  copy(): this {
+    return this.create(this.values);
   }
 
   /** Iteration */
   *[Symbol.iterator](): Generator<TEntity, void, unknown> {
-    for (let i = 0; i < this.length; i++) {
-      yield this.at(i);
+    for (let i = 0; i < this.values.length; i++) {
+      yield this.createEntity(this.values[i]);
     }
   }
 
-  /** Abstract / protected methods */
+  /** Abstract method for creating entity from raw data */
   protected abstract createEntity(data: TData): TEntity;
 }
