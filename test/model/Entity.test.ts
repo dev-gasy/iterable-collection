@@ -153,6 +153,33 @@ describe("Entity", () => {
 
       expect(entity.exists()).toBe(false);
     });
+
+    it("should act as type predicate to narrow value type", () => {
+      const entity = new TestEntity();
+      const entityWithData = new TestEntity(partial<TestData>({
+        _key: { id: "1", rootId: "root", revisionNo: 1 },
+        name: "Test Item",
+        value: 42,
+      }));
+
+      // Test type narrowing with empty entity
+      if (entity.exists()) {
+        // TypeScript should know entity has value here
+        expect(entity.raw()).toBeDefined();
+        expect(entity.name).toBe("Test Item");
+      } else {
+        // This path should be taken for empty entity
+        expect(entity.raw()).toBeUndefined();
+      }
+
+      // Test type narrowing with entity that has data
+      if (entityWithData.exists()) {
+        // TypeScript should know entityWithData has value here
+        expect(entityWithData.raw()).toBeDefined();
+        expect(entityWithData.name).toBe("Test Item");
+        expect(entityWithData.raw()!.value).toBe(42);
+      }
+    });
   });
 
   describe("isEmpty", () => {

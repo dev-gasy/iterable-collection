@@ -23,7 +23,7 @@ export class Entity<
     return this.value?._key?.id;
   }
 
-  public exists(): boolean {
+  public exists(): this is Entity<TData, TParent> & { value: TData } {
     return this.value !== undefined;
   }
 

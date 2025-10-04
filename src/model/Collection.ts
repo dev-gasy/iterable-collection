@@ -38,11 +38,6 @@ export abstract class Collection<
     return this.values;
   }
 
-  /** Accessors */
-  at(index: number): TEntity {
-    return this.createEntity(this.values[index]);
-  }
-
   get length(): number {
     return this.values.length;
   }
@@ -51,11 +46,18 @@ export abstract class Collection<
     return this.length === 0;
   }
 
+  /** Accessors */
+  at(index: number): TEntity {
+    return this.createEntity(this.values[index]);
+  }
+
   toArray(): TEntity[] {
     return this.values.map((v) => this.createEntity(v));
   }
 
-  /** Functional methods */
+  /** Functional methods with type predicates */
+  filter<U extends TEntity>(predicate: (entity: TEntity, index: number) => entity is U): this;
+  filter(predicate: (entity: TEntity, index: number) => boolean): this;
   filter(predicate: (entity: TEntity, index: number) => boolean): this {
     const items: TData[] = [];
     for (let i = 0; i < this.values.length; i++) {

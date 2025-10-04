@@ -236,4 +236,5 @@ describe("Pipeable", () => {
       expect(arrayResult).toEqual([5, 10, 15]);
     });
   });
+
 });
