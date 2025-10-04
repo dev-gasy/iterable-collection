@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Key, BusinessEntity, EntityConstructor, CollectionConstructor } from "../../src/model/types";
+import type { Key, BusinessEntity, EntityConstructor, CollectionConstructor } from "../../src/model";
 
 describe("types", () => {
   describe("Key interface", () => {

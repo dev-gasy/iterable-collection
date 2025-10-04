@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { Pipeable } from "../../src/model/Pipeable";
+import { Pipeable } from "../../src/model";
 
 class TestPipeable extends Pipeable {
   public value: number;
-  
+
   constructor(value: number) {
     super();
     this.value = value;

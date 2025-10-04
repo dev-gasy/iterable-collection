@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Entity } from "../../src/model/Entity";
-import type { BusinessEntity } from "../../src/model/types";
+import { Entity, type  BusinessEntity } from "../../src/model";
 import { partial } from "../../src/partial";
 
 interface TestData extends BusinessEntity {
